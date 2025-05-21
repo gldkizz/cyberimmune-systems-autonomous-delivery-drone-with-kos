@@ -27,6 +27,9 @@ BOARD="RPI4_BCM2711"
 COORD_SRC=1
 ALT_SRC=1
 
+COORD_SRC=1
+ALT_SRC=1
+
 set -eu
 
 function help
