@@ -27,7 +27,7 @@ def mqtt_publish_ping(id: str, *args, **kwargs):
     else:
         message = f'$Delay {uav_entity.delay}'
     message = f'{message}#{hex(sign(message, KeyGroup.ORVD))[2:]}'
-    mqtt.publish_message(MQTTTopic.FLIGHT_STATUS.format(id=id), message)
+    mqtt.publish_message(MQTTTopic.PING.format(id=id), message)
 
 def mqtt_publish_forbidden_zones(*args, **kwargs):
     try:
