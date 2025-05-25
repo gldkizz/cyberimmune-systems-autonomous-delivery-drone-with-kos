@@ -48,12 +48,12 @@ def arm_request(client, userdata, msg, **kwargs):
         query_string = msg.payload.decode()
         query_params = parse_qs(query_string)
         payload = {k: v[0] for k, v in query_params.items()}
-        payload['id'] = extract_id_from_kwargs(kwargs)
+        id = extract_id_from_kwargs(kwargs)
         
         response = signed_request(handler_func=arm_handler, verifier_func=verify, signer_func=sign,
-                            query_str=f"{APIRoute.ARM}?id={payload['id']}", key_group=f"{KeyGroup.KOS}{payload['id']}", sig=payload['sig'], id=payload['id'])
+                            query_str=f"{APIRoute.ARM}?id={id}", key_group=f"{KeyGroup.KOS}{id}", sig=payload['sig'], id=id)
         if len(response) == 2 and response[1] == 200:
-            mqtt.publish_message(MQTTTopic.ARM_RESPONSE, response[0])
+            mqtt.publish_message(MQTTTopic.ARM_RESPONSE.format(id=id), response[0])
     except Exception as e:
         print(f"Error handling mission message: {e}")
 
@@ -74,11 +74,12 @@ def revise_mission(client, userdata, msg, **kwargs):
         query_string = msg.payload.decode()
         query_params = parse_qs(query_string)
         payload = {k: v[0] for k, v in query_params.items()}
-        payload['id'] = extract_id_from_kwargs(kwargs)
+        id = extract_id_from_kwargs(kwargs)
+        
         response = signed_request(handler_func=revise_mission_handler, verifier_func=verify, signer_func=sign,
-                                    query_str=f"{APIRoute.NMISSION}?id={payload['id']}&mission={payload.get('mission')}",
-                                    key_group=f'{KeyGroup.KOS}{id}', sig=payload['sig'], id=payload['id'], mission=payload.get('mission'))
+                                    query_str=f"{APIRoute.NMISSION}?id={id}&mission={payload.get('mission')}",
+                                    key_group=f'{KeyGroup.KOS}{id}', sig=payload['sig'], id=id, mission=payload.get('mission'))
         if len(response) == 2 and response[1] == 200:
-            mqtt.publish_message(MQTTTopic.NMISSION_RESPONSE, response[0])
+            mqtt.publish_message(MQTTTopic.NMISSION_RESPONSE.format(id=id), response[0])
     except Exception as e:
         print(f"Error handling mission message: {e}")
