@@ -46,6 +46,9 @@ def commit_changes():
     """
     db.session.commit()
     
+def flush():
+    db.session.flush()
+    
     
 def delete_entity(entity: db.Model):
     """

@@ -920,61 +920,6 @@ def get_logs():
     else:
         return bad_request('Wrong id')
 
-@bp.route(APIRoute.NMISSION)
-def revise_mission():
-  """_summary_
-
-  Returns:
-      _type_: _description_
-  """
-  id = cast_wrapper(request.args.get('id'), str)
-  mission = cast_wrapper(request.args.get('mission'), str)
-  sig = request.args.get('sig')
-  if id:
-      return signed_request(handler_func=revise_mission_handler, verifier_func=mock_verifier, signer_func=sign,
-                            query_str=f'{APIRoute.NMISSION}?id={id}&mission={mission}', key_group=f'{KeyGroup.KOS}{id}', sig=sig, id=id, mission=mission)
-  else:
-      return bad_request('Wrong id')
-  
-
-@bp.route(APIRoute.LOGS)
-def save_logs():
-    """
-    Сохраняет лог для указанного БПЛА.
-    ---
-    tags:
-      - api
-    parameters:
-      - name: id
-        in: query
-        type: string
-        required: true
-        description: Идентификатор БПЛА.
-      - name: log
-        in: query
-        type: string
-        required: true
-        description: Строка с логами для сохранения.
-    responses:
-      200:
-        description: Лог успешно сохранен.
-        schema:
-          type: string
-          example: "$OK"
-      400:
-        description: Неверный идентификатор.
-        schema:
-          type: string
-          example: "Wrong id"
-    """
-    id = cast_wrapper(request.args.get('id'), str)
-    log = cast_wrapper(request.args.get('log'), str)
-    if id:
-        return regular_request(handler_func=save_logs_handler, id=id, log=log)
-    else:
-        return bad_request('Wrong id')
-
-
 @bp.route(GeneralRoute.MISSION_SENDER)
 def mission_sender():
     """
@@ -1112,47 +1057,6 @@ def key_kos_exchange():
         return bad_request('Wrong id')
 
 
-@bp.route(APIRoute.ARM)
-def arm_request():
-    """
-    Обрабатывает запрос на арм от БПЛА.
-    ---
-    tags:
-      - api
-    parameters:
-      - name: id
-        in: query
-        type: string
-        required: true
-        description: Идентификатор БПЛА.
-      - name: sig
-        in: query
-        type: string
-        required: true
-        description: Подпись запроса.
-    responses:
-      200:
-        description: Состояние арма (0 - вкл, 1 - выкл) и время до следующего сеанса связи или $-1, если БПЛА не найден.
-        schema:
-          type: string
-          example: "$Arm {state}$Delay {time in seconds}#{signature}"
-      400:
-        description: Неверный идентификатор.
-        schema:
-          type: string
-          example: "Wrong id"
-      403:
-        description: Ошибка проверки подписи.
-    """
-    id = cast_wrapper(request.args.get('id'), str)
-    sig = request.args.get('sig')
-    if id:
-        return signed_request(handler_func=arm_handler, verifier_func=verify, signer_func=sign,
-                          query_str=f'{APIRoute.ARM}?id={id}', key_group=f'{KeyGroup.KOS}{id}', sig=sig, id=id)
-    else:
-        return bad_request('Wrong id')
-
-
 @bp.route(APIRoute.AUTH)
 def auth():
     """
@@ -1194,253 +1098,253 @@ def auth():
         return bad_request('Wrong id')
 
 
-@bp.route(APIRoute.FLY_ACCEPT)
-def fly_accept():
-    """
-    Обрабатывает запрос на разрешение полета от БПЛА.
-    ---
-    tags:
-      - api
-    parameters:
-      - name: id
-        in: query
-        type: string
-        required: true
-        description: Идентификатор БПЛА.
-      - name: sig
-        in: query
-        type: string
-        required: true
-        description: Подпись запроса.
-    responses:
-      200:
-        description: Состояние арма (0 - вкл, 1 - выкл) и время до следующего сеанса связи или $-1, если БПЛА не найден.
-        schema:
-          type: string
-          example: "$Arm: {state}$Delay {time in seconds}#{signature}"
-      400:
-        description: Неверный идентификатор.
-        schema:
-          type: string
-          example: "Wrong id"
-      403:
-        description: Ошибка проверки подписи.
-    """
-    id = cast_wrapper(request.args.get('id'), str)
-    sig = request.args.get('sig')
-    if id:
-        return signed_request(handler_func=fly_accept_handler, verifier_func=verify, signer_func=sign,
-                          query_str=f'{APIRoute.FLY_ACCEPT}?id={id}', key_group=f'{KeyGroup.KOS}{id}', sig=sig, id=id)
-    else:
-        return bad_request('Wrong id')
+# @bp.route(APIRoute.FLY_ACCEPT)
+# def fly_accept():
+#     """
+#     Обрабатывает запрос на разрешение полета от БПЛА.
+#     ---
+#     tags:
+#       - api
+#     parameters:
+#       - name: id
+#         in: query
+#         type: string
+#         required: true
+#         description: Идентификатор БПЛА.
+#       - name: sig
+#         in: query
+#         type: string
+#         required: true
+#         description: Подпись запроса.
+#     responses:
+#       200:
+#         description: Состояние арма (0 - вкл, 1 - выкл) и время до следующего сеанса связи или $-1, если БПЛА не найден.
+#         schema:
+#           type: string
+#           example: "$Arm: {state}$Delay {time in seconds}#{signature}"
+#       400:
+#         description: Неверный идентификатор.
+#         schema:
+#           type: string
+#           example: "Wrong id"
+#       403:
+#         description: Ошибка проверки подписи.
+#     """
+#     id = cast_wrapper(request.args.get('id'), str)
+#     sig = request.args.get('sig')
+#     if id:
+#         return signed_request(handler_func=fly_accept_handler, verifier_func=verify, signer_func=sign,
+#                           query_str=f'{APIRoute.FLY_ACCEPT}?id={id}', key_group=f'{KeyGroup.KOS}{id}', sig=sig, id=id)
+#     else:
+#         return bad_request('Wrong id')
 
  
-@bp.route(APIRoute.FLIGHT_INFO)
-def flight_info():
-    """
-    Обрабатывает запрос на информацию полета от БПЛА.
-    ---
-    tags:
-      - api
-    parameters:
-      - name: id
-        in: query
-        type: string
-        required: true
-        description: Идентификатор БПЛА.
-      - name: sig
-        in: query
-        type: string
-        required: true
-        description: Подпись запроса.
-    responses:
-      200:
-        description: Состояние полета (-1 в случае kill switch, 0 в случае продолжения полета, 1 в случае приостановки полета), хэш запретных зон и время до следующего сеанса связи или $-1, если БПЛА не найден.
-        schema:
-          type: string
-          example: "$Flight {status}$ForbiddenZonesHash {hash}$Delay {time in seconds}#{signature}"
-      400:
-        description: Неверный идентификатор.
-        schema:
-          type: string
-          example: "Wrong id"
-      403:
-        description: Ошибка проверки подписи.
-    """
-    id = cast_wrapper(request.args.get('id'), str)
-    sig = request.args.get('sig')
-    if not context.flight_info_response:
-        return '', 403
-    elif id:
-        return signed_request(handler_func=flight_info_handler, verifier_func=verify, signer_func=sign,
-                          query_str=f'{APIRoute.FLIGHT_INFO}?id={id}', key_group=f'{KeyGroup.KOS}{id}', sig=sig, id=id)
-    else:
-        return bad_request('Wrong id')
+# @bp.route(APIRoute.FLIGHT_INFO)
+# def flight_info():
+#     """
+#     Обрабатывает запрос на информацию полета от БПЛА.
+#     ---
+#     tags:
+#       - api
+#     parameters:
+#       - name: id
+#         in: query
+#         type: string
+#         required: true
+#         description: Идентификатор БПЛА.
+#       - name: sig
+#         in: query
+#         type: string
+#         required: true
+#         description: Подпись запроса.
+#     responses:
+#       200:
+#         description: Состояние полета (-1 в случае kill switch, 0 в случае продолжения полета, 1 в случае приостановки полета), хэш запретных зон и время до следующего сеанса связи или $-1, если БПЛА не найден.
+#         schema:
+#           type: string
+#           example: "$Flight {status}$ForbiddenZonesHash {hash}$Delay {time in seconds}#{signature}"
+#       400:
+#         description: Неверный идентификатор.
+#         schema:
+#           type: string
+#           example: "Wrong id"
+#       403:
+#         description: Ошибка проверки подписи.
+#     """
+#     id = cast_wrapper(request.args.get('id'), str)
+#     sig = request.args.get('sig')
+#     if not context.flight_info_response:
+#         return '', 403
+#     elif id:
+#         return signed_request(handler_func=flight_info_handler, verifier_func=verify, signer_func=sign,
+#                           query_str=f'{APIRoute.FLIGHT_INFO}?id={id}', key_group=f'{KeyGroup.KOS}{id}', sig=sig, id=id)
+#     else:
+#         return bad_request('Wrong id')
       
       
-@bp.route(APIRoute.TELEMETRY)
-def telemetry():
-    """
-    Обрабатывает получение телеметрии от БПЛА.
-    ---
-    tags:
-      - api
-    parameters:
-      - name: id
-        in: query
-        type: string
-        required: true
-        description: Идентификатор БПЛА.
-      - name: sig
-        in: query
-        type: string
-        required: true
-        description: Подпись запроса.
-      - name: lat
-        in: query
-        type: string
-        required: true
-        description: Широта.
-      - name: lon
-        in: query
-        type: string
-        required: true
-        description: Долгота.
-      - name: alt
-        in: query
-        type: string
-        required: true
-        description: Высота.
-      - name: azimuth
-        in: query
-        type: string
-        required: true
-        description: Азимут.
-      - name: dop
-        in: query
-        type: string
-        required: true
-        description: DOP (Dilution of Precision).
-      - name: sats
-        in: query
-        type: string
-        required: true
-        description: Количество спутников.
-      - name: speed
-        in: query
-        type: string
-        required: true
-        description: Скорость.
-    responses:
-      200:
-        description: Состояние арма (0 - вкл, 1 - выкл) или $-1, если БПЛА не найден.
-        schema:
-          type: string
-          example: "$Arm: {state}#{signature}"
-      400:
-        description: Неверный идентификатор.
-        schema:
-          type: string
-          example: "Wrong id"
-      403:
-        description: Ошибка проверки подписи.
-    """
-    id = cast_wrapper(request.args.get('id'), str)
-    sig = request.args.get('sig')
-    lat = request.args.get('lat')
-    lon = request.args.get('lon')
-    alt = request.args.get('alt')
-    azimuth = request.args.get('azimuth')
-    dop = request.args.get('dop')
-    sats = request.args.get('sats')
-    speed = request.args.get('speed')
-    if id:
-        return signed_request(handler_func=telemetry_handler, verifier_func=verify, signer_func=sign,
-                          query_str=f'{APIRoute.TELEMETRY}?id={id}&lat={lat}&lon={lon}&alt={alt}&azimuth={azimuth}&dop={dop}&sats={sats}&speed={speed}',
-                          key_group=f'{KeyGroup.KOS}{id}', sig=sig, id=id, lat=lat, lon=lon, alt=alt, azimuth=azimuth, dop=dop, sats=sats, speed=speed)
-    else:
-        return bad_request('Wrong id')
+# @bp.route(APIRoute.TELEMETRY)
+# def telemetry():
+#     """
+#     Обрабатывает получение телеметрии от БПЛА.
+#     ---
+#     tags:
+#       - api
+#     parameters:
+#       - name: id
+#         in: query
+#         type: string
+#         required: true
+#         description: Идентификатор БПЛА.
+#       - name: sig
+#         in: query
+#         type: string
+#         required: true
+#         description: Подпись запроса.
+#       - name: lat
+#         in: query
+#         type: string
+#         required: true
+#         description: Широта.
+#       - name: lon
+#         in: query
+#         type: string
+#         required: true
+#         description: Долгота.
+#       - name: alt
+#         in: query
+#         type: string
+#         required: true
+#         description: Высота.
+#       - name: azimuth
+#         in: query
+#         type: string
+#         required: true
+#         description: Азимут.
+#       - name: dop
+#         in: query
+#         type: string
+#         required: true
+#         description: DOP (Dilution of Precision).
+#       - name: sats
+#         in: query
+#         type: string
+#         required: true
+#         description: Количество спутников.
+#       - name: speed
+#         in: query
+#         type: string
+#         required: true
+#         description: Скорость.
+#     responses:
+#       200:
+#         description: Состояние арма (0 - вкл, 1 - выкл) или $-1, если БПЛА не найден.
+#         schema:
+#           type: string
+#           example: "$Arm: {state}#{signature}"
+#       400:
+#         description: Неверный идентификатор.
+#         schema:
+#           type: string
+#           example: "Wrong id"
+#       403:
+#         description: Ошибка проверки подписи.
+#     """
+#     id = cast_wrapper(request.args.get('id'), str)
+#     sig = request.args.get('sig')
+#     lat = request.args.get('lat')
+#     lon = request.args.get('lon')
+#     alt = request.args.get('alt')
+#     azimuth = request.args.get('azimuth')
+#     dop = request.args.get('dop')
+#     sats = request.args.get('sats')
+#     speed = request.args.get('speed')
+#     if id:
+#         return signed_request(handler_func=telemetry_handler, verifier_func=verify, signer_func=sign,
+#                           query_str=f'{APIRoute.TELEMETRY}?id={id}&lat={lat}&lon={lon}&alt={alt}&azimuth={azimuth}&dop={dop}&sats={sats}&speed={speed}',
+#                           key_group=f'{KeyGroup.KOS}{id}', sig=sig, id=id, lat=lat, lon=lon, alt=alt, azimuth=azimuth, dop=dop, sats=sats, speed=speed)
+#     else:
+#         return bad_request('Wrong id')
     
-@bp.route(APIRoute.KILL_SWITCH)
-def kill_switch():
-    """
-    Обрабатывает запрос на аварийное выключение от БПЛА.
-    ---
-    tags:
-      - api
-    parameters:
-      - name: id
-        in: query
-        type: string
-        required: true
-        description: Идентификатор БПЛА.
-      - name: sig
-        in: query
-        type: string
-        required: true
-        description: Подпись запроса.
-    responses:
-      200:
-        description: Состояние аварийного отключения (0 - вкл, 1 - выкл) или $-1, если БПЛА не найден.
-        schema:
-          type: string
-          example: "$KillSwitch: {state}#{signature}"
-      400:
-        description: Неверный идентификатор.
-        schema:
-          type: string
-          example: "Wrong id"
-      403:
-        description: Ошибка проверки подписи.
-    """
-    id = cast_wrapper(request.args.get('id'), str)
-    sig = request.args.get('sig')
-    if id:
-        return signed_request(handler_func=kill_switch_handler, verifier_func=verify, signer_func=sign,
-                          query_str=f'{APIRoute.KILL_SWITCH}?id={id}', key_group=f'{KeyGroup.KOS}{id}', sig=sig, id=id)
-    else:
-        return bad_request('Wrong id')
+# @bp.route(APIRoute.KILL_SWITCH)
+# def kill_switch():
+#     """
+#     Обрабатывает запрос на аварийное выключение от БПЛА.
+#     ---
+#     tags:
+#       - api
+#     parameters:
+#       - name: id
+#         in: query
+#         type: string
+#         required: true
+#         description: Идентификатор БПЛА.
+#       - name: sig
+#         in: query
+#         type: string
+#         required: true
+#         description: Подпись запроса.
+#     responses:
+#       200:
+#         description: Состояние аварийного отключения (0 - вкл, 1 - выкл) или $-1, если БПЛА не найден.
+#         schema:
+#           type: string
+#           example: "$KillSwitch: {state}#{signature}"
+#       400:
+#         description: Неверный идентификатор.
+#         schema:
+#           type: string
+#           example: "Wrong id"
+#       403:
+#         description: Ошибка проверки подписи.
+#     """
+#     id = cast_wrapper(request.args.get('id'), str)
+#     sig = request.args.get('sig')
+#     if id:
+#         return signed_request(handler_func=kill_switch_handler, verifier_func=verify, signer_func=sign,
+#                           query_str=f'{APIRoute.KILL_SWITCH}?id={id}', key_group=f'{KeyGroup.KOS}{id}', sig=sig, id=id)
+#     else:
+#         return bad_request('Wrong id')
 
 
-@bp.route(APIRoute.FMISSION_KOS)
-def fmission_kos():
-    """
-    Обрабатывает запрос на получение миссии от БПЛА.
-    ---
-    tags:
-      - api
-    parameters:
-      - name: id
-        in: query
-        type: string
-        required: true
-        description: Идентификатор БПЛА.
-      - name: sig
-        in: query
-        type: string
-        required: true
-        description: Подпись запроса.
-    responses:
-      200:
-        description: Полетное задание, если найдено. Если не найдено, то $-1
-        schema:
-          type: string
-          example: "$FlightMission {mission_string}#{signature}"
-      400:
-        description: Неверный идентификатор.
-        schema:
-          type: string
-          example: "Wrong id"
-      403:
-        description: Ошибка проверки подписи.
-    """
-    id = cast_wrapper(request.args.get('id'), str)
-    sig = request.args.get('sig')
-    if id:
-        return signed_request(handler_func=fmission_kos_handler, verifier_func=verify, signer_func=sign,
-                          query_str=f'{APIRoute.FMISSION_KOS}?id={id}', key_group=f'{KeyGroup.KOS}{id}', sig=sig, id=id)
-    else:
-        return bad_request('Wrong id')
+# @bp.route(APIRoute.FMISSION_KOS)
+# def fmission_kos():
+#     """
+#     Обрабатывает запрос на получение миссии от БПЛА.
+#     ---
+#     tags:
+#       - api
+#     parameters:
+#       - name: id
+#         in: query
+#         type: string
+#         required: true
+#         description: Идентификатор БПЛА.
+#       - name: sig
+#         in: query
+#         type: string
+#         required: true
+#         description: Подпись запроса.
+#     responses:
+#       200:
+#         description: Полетное задание, если найдено. Если не найдено, то $-1
+#         schema:
+#           type: string
+#           example: "$FlightMission {mission_string}#{signature}"
+#       400:
+#         description: Неверный идентификатор.
+#         schema:
+#           type: string
+#           example: "Wrong id"
+#       403:
+#         description: Ошибка проверки подписи.
+#     """
+#     id = cast_wrapper(request.args.get('id'), str)
+#     sig = request.args.get('sig')
+#     if id:
+#         return signed_request(handler_func=fmission_kos_handler, verifier_func=verify, signer_func=sign,
+#                           query_str=f'{APIRoute.FMISSION_KOS}?id={id}', key_group=f'{KeyGroup.KOS}{id}', sig=sig, id=id)
+#     else:
+#         return bad_request('Wrong id')
     
 
 @bp.route(APIRoute.GET_ALL_FORBIDDEN_ZONES)

@@ -102,6 +102,13 @@ class MQTTClientWrapper:
         print("MQTT client loop started.")
         return True
 
+    def publish_message(self, topic, payload, qos=0, retain=False):
+        if self.client and self.client.is_connected():
+            self.client.publish(topic, payload, qos, retain)
+            print(f"Published message to topic {topic}: {payload}")
+        else:
+            print("Client not connected. Cannot publish message.")
+                
     def disconnect(self):
         if self.client:
             self.client.loop_stop()

@@ -42,8 +42,20 @@ class MissionVerificationStatus:
     UNKNOWN_COMMAND = 'Error: The mission contains an unknown command. Allowed commands: 16, 21, 22, 93, 183.'
 
 class MQTTTopic:
-    TELEMETRY = 'api/telemetry'
-    MISSION = 'api/mission'
+    # receivable
+    LOGS = 'api/logs/{id}'
+    TELEMETRY = 'api/telemetry/{id}'
+    FMISSION_MS = 'api/mission/{id}'
+    NMISSION_REQUEST = 'api/nmission/request/{id}'
+    ARM_REQUEST = 'api/arm/request/{id}'
+    
+    # sendable
+    PING = 'ping/{id}'
+    ARM_RESPONSE = 'api/arm/response/{id}'
+    NMISSION_RESPONSE = 'api/nmission/response/{id}'
+    FLIGHT_STATUS = 'api/flight_status/{id}'
+    FORBIDDEN_ZONES = 'api/forbidden_zones'
+    FMISSION_KOS = 'api/fmission_kos/{id}'
     
 class APIRoute:
     NMISSION = '/api/nmission'

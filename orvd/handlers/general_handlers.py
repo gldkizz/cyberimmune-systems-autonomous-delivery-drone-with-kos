@@ -41,7 +41,7 @@ def key_ms_exchange_handler(id: str):
     return str_to_send
 
 
-def fmission_ms_handler(id: str, mission_str: str):
+def fmission_ms_handler(id: str, mission_str: str, **kwargs):
     """
     Обрабатывает запрос на сохранение полетного задания от Mission Sender.
 

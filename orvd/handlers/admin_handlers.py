@@ -1,16 +1,20 @@
 import json
 from flask import jsonify
 from context import context
+from extensions import task_scheduler_client as scheduler
 from db.models import User, UavTelemetry, Mission, MissionStep, Uav
 from constants import (
     ARMED, NOT_FOUND, OK, FORBIDDEN_ZONES_PATH,
     MISSION_ACCEPTED, MISSION_NOT_ACCEPTED
 )
 from db.dao import (
-    commit_changes, get_entity_by_key,get_entities_by_field_with_order
+    commit_changes, get_entity_by_key, get_entities_by_field_with_order, flush
 )
 from utils import (
     get_sha256_hex, get_new_polygon_feature, compute_and_save_forbidden_zones_delta
+)
+from .mqtt_handlers import (
+    mqtt_publish_flight_state, mqtt_publish_forbidden_zones, mqtt_publish_ping
 )
 
 
@@ -209,6 +213,8 @@ def admin_kill_switch_handler(id: str):
         uav_entity.kill_switch_state = True
         uav_entity.state = "Kill switch ON"
         commit_changes()
+        flush()
+        mqtt_publish_flight_state(id)
         return OK
 
 
@@ -267,6 +273,8 @@ def change_fly_accept_handler(id: str, decision: int):
             uav_entity.is_armed = False
             uav_entity.state = 'В сети'
         commit_changes()
+        flush()
+        mqtt_publish_flight_state(id)
         return OK
     return NOT_FOUND
 
@@ -365,6 +373,7 @@ def set_forbidden_zone_handler(name: str, geometry: list):
             
         compute_and_save_forbidden_zones_delta(old_zones, forbidden_zones)
     
+    mqtt_publish_forbidden_zones()
     return OK
 
 
@@ -395,7 +404,7 @@ def delete_forbidden_zone_handler(name: str):
             json.dump(forbidden_zones, f, ensure_ascii=False, indent=4)
             
         compute_and_save_forbidden_zones_delta(old_zones, forbidden_zones)
-        
+        mqtt_publish_forbidden_zones()
         return OK
     
     return NOT_FOUND
@@ -435,6 +444,13 @@ def set_delay_handler(id: str, delay: int):
     else:
         uav_entity.delay = delay
         commit_changes()
+        flush()
+        scheduler.add_interval_task(
+            task_name=f"ping_{id}",
+            seconds=uav_entity.delay,
+            func=mqtt_publish_ping,
+            args=(id,)
+        )
         return OK
 
 

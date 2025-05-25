@@ -3,21 +3,23 @@ import json
 import os
 import time
 from context import context
+from extensions import task_scheduler_client as scheduler
 from constants import (
     ARMED, DISARMED, KILL_SWITCH_ON, KILL_SWITCH_OFF,
-    NOT_FOUND, OK, LOGS_PATH,
-    FORBIDDEN_ZONES_PATH, FORBIDDEN_ZONES_DELTA_PATH
+    FORBIDDEN_ZONES_PATH, FORBIDDEN_ZONES_DELTA_PATH,
+    NOT_FOUND, OK, LOGS_PATH
 )
 from db.dao import (
     add_and_commit, add_changes, commit_changes, delete_entity, get_entity_by_key,
     get_entities_by_field, get_entities_by_field_with_order, save_public_key,
-    get_key
+    get_key, flush
 )
 from db.models import UavTelemetry, MissionStep, Mission, UavPublicKeys, Uav
 from utils import (
     cast_wrapper, generate_forbidden_zones_string,
     get_sha256_hex
 )
+from .mqtt_handlers import mqtt_publish_flight_state, mqtt_publish_ping, mqtt_publish_forbidden_zones
     
 def key_kos_exchange_handler(id: str, n: str, e: str):
     """
@@ -59,11 +61,25 @@ def auth_handler(id: str):
         uav_entity.state = 'В сети'
         uav_entity.kill_switch_state = False
         commit_changes()
+        
+    flush()
+    scheduler.add_interval_task(
+        task_name=f"flight_state_{id}",
+        seconds=1,
+        func=mqtt_publish_flight_state,
+        args=(id,)
+    )
+    scheduler.add_interval_task(
+        task_name=f"ping_{id}",
+        seconds=uav_entity.delay,
+        func=mqtt_publish_ping,
+        args=(id,)
+    )
+    mqtt_publish_forbidden_zones()
     
     return f'$Auth id={id}'
 
-
-def arm_handler(id: str):
+def arm_handler(id: str, **kwargs):
     """
     Обрабатывает запрос на арм БПЛА.
 
@@ -178,7 +194,7 @@ def flight_info_handler(id: str) -> str:
 
 
 def telemetry_handler(id: str, lat: float, lon: float, alt: float,
-                      azimuth: float, dop: float, sats: float, speed: float):
+                      azimuth: float, dop: float, sats: float, speed: float, **kwargs):
     """
     Обрабатывает телеметрию БПЛА.
 
@@ -321,7 +337,7 @@ def get_forbidden_zones_hash_handler(*args, **kwargs):
         return NOT_FOUND
 
 
-def revise_mission_handler(id: str, mission: str):
+def revise_mission_handler(id: str, mission: str, **kwargs):
     mission_list = mission.split('*')
     
     mission_entity = get_entity_by_key(Mission, id)
@@ -356,7 +372,7 @@ def revise_mission_handler(id: str, mission: str):
     return '$Approve 1'
 
 
-def save_logs_handler(id: str, log: str):
+def save_logs_handler(id: str, log: str, **kwargs):
     """
     Обрабатывает запрос на сохранение логов БПЛА.
 

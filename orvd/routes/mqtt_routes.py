@@ -1,10 +1,12 @@
 import json
 from urllib.parse import parse_qs
-from constants import MQTTTopic
+from constants import MQTTTopic, APIRoute, KeyGroup
 from extensions import mqtt_client as mqtt
-from utils import regular_request
-from handlers.api_handlers import telemetry_handler
+from utils import verify, sign, signed_request
 from handlers.general_handlers import fmission_ms_handler
+from handlers.api_handlers import (
+    telemetry_handler, arm_handler, save_logs_handler, revise_mission_handler
+)
 
 def extract_id_from_kwargs(kwargs):
     id = kwargs.get('id')
@@ -13,25 +15,70 @@ def extract_id_from_kwargs(kwargs):
     else:
         raise Exception("No id provided.")
 
-@mqtt.topic(f"{MQTTTopic.TELEMETRY}/{{id}}")
-def handle_telemetry_message(client, userdata, msg, **kwargs):
+@mqtt.topic(MQTTTopic.TELEMETRY)
+def telemetry(client, userdata, msg, **kwargs):
     try:
         query_string = msg.payload.decode()
         query_params = parse_qs(query_string)
-        single_value_params = {k: v[0] for k, v in query_params.items()}
-        single_value_params['id'] = extract_id_from_kwargs(kwargs)
-        regular_request(handler_func=telemetry_handler, **single_value_params)
+        payload = {k: v[0] for k, v in query_params.items()}
+        payload['id'] = extract_id_from_kwargs(kwargs)
+        telemetry_handler(**payload)
     except Exception as e:
         print(f"Error handling telemetry message: {e}")
 
-@mqtt.topic(f"{MQTTTopic.MISSION}/{{id}}")
-def handle_mission_message(client, userdata, msg, **kwargs):
+@mqtt.topic(MQTTTopic.FMISSION_MS)
+def mission(client, userdata, msg, **kwargs):
     try:
         payload_str = msg.payload.decode()
         payload = json.loads(payload_str)
         payload['id'] = extract_id_from_kwargs(kwargs)
-        regular_request(handler_func=fmission_ms_handler, **payload)
+        fmission_ms_handler(**payload)
     except json.JSONDecodeError as e:
         print(f"Error decoding JSON from mission message: {e}. Payload: {payload_str}")
+    except Exception as e:
+        print(f"Error handling mission message: {e}")
+
+
+@mqtt.topic(MQTTTopic.ARM_REQUEST)
+def arm_request(client, userdata, msg, **kwargs):
+    """
+    Обрабатывает запрос на арм от БПЛА.
+    """
+    try:
+        query_string = msg.payload.decode()
+        query_params = parse_qs(query_string)
+        payload = {k: v[0] for k, v in query_params.items()}
+        payload['id'] = extract_id_from_kwargs(kwargs)
+        
+        response = signed_request(handler_func=arm_handler, verifier_func=verify, signer_func=sign,
+                            query_str=f"{APIRoute.ARM}?id={payload['id']}", key_group=f"{KeyGroup.KOS}{payload['id']}", sig=payload['sig'], id=payload['id'])
+        if len(response) == 2 and response[1] == 200:
+            mqtt.publish_message(MQTTTopic.ARM_RESPONSE, response[0])
+    except Exception as e:
+        print(f"Error handling mission message: {e}")
+
+@mqtt.topic(MQTTTopic.LOGS)
+def save_logs(client, userdata, msg, **kwargs):
+    """
+    Сохраняет лог для указанного БПЛА.
+    """
+    query_string = msg.payload.decode()
+    query_params = parse_qs(query_string)
+    payload = {k: v[0] for k, v in query_params.items()}
+    payload['id'] = extract_id_from_kwargs(kwargs)
+    save_logs_handler(**payload)
+
+@mqtt.topic(MQTTTopic.NMISSION_REQUEST)
+def revise_mission(client, userdata, msg, **kwargs):
+    try:
+        query_string = msg.payload.decode()
+        query_params = parse_qs(query_string)
+        payload = {k: v[0] for k, v in query_params.items()}
+        payload['id'] = extract_id_from_kwargs(kwargs)
+        response = signed_request(handler_func=revise_mission_handler, verifier_func=verify, signer_func=sign,
+                                    query_str=f"{APIRoute.NMISSION}?id={payload['id']}&mission={payload.get('mission')}",
+                                    key_group=f'{KeyGroup.KOS}{id}', sig=payload['sig'], id=payload['id'], mission=payload.get('mission'))
+        if len(response) == 2 and response[1] == 200:
+            mqtt.publish_message(MQTTTopic.NMISSION_RESPONSE, response[0])
     except Exception as e:
         print(f"Error handling mission message: {e}")

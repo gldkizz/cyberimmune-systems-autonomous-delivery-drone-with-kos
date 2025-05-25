@@ -11,6 +11,7 @@ ufw reload
 apt-get -y install python3 \
         python3-pip \
         python3-venv \
+        python3-apscheduler \
         python3-blinker \
         python3-dotenv \
         python3-flask \
