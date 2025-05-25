@@ -1,6 +1,10 @@
-import secrets, os
-from orvd_server import db
+import os
+import secrets
+from extensions import db
 from hashlib import sha256
+from constants import KeyGroup
+from context import context
+from .models import User, UavTelemetry, MissionStep, Mission, MissionSenderPublicKeys, UavPublicKeys, Uav
 
 
 def add_and_commit(entity: db.Model):
@@ -70,23 +74,35 @@ def get_entity_by_key(entity: db.Model, key_value):
     return entity.query.get(key_value)
 
 
-def generate_user(user_model: db.Model):
+def generate_user():
     """
     Создает пользователя-администратора и добавляет его в базу данных.
-
-    Args:
-        user_model (db.Model): Модель пользователя.
 
     Return:
         None
     """
-    user_entity = user_model(username=str(os.getenv("ADMIN_LOGIN")),
+    user_entity = User(username=str(os.getenv("ADMIN_LOGIN")),
                        password_hash=hex(int.from_bytes(sha256(str(os.getenv("ADMIN_PASSW")).encode()).digest(),
                                                         byteorder='big', signed=False))[2:],
                        access_token=secrets.token_hex(16))
     db.session.add(user_entity)
     db.session.commit()
     
+def check_user_token(token: str):
+    """
+    Проверяет валидность токена пользователя.
+
+    Args:
+        token (str): Токен для проверки.
+
+    Returns:
+        bool: True, если токен валиден, иначе False.
+    """
+    users = get_entities_by_field(User, User.access_token, token)
+    if users and users.count() != 0:
+        return True
+    else:
+        return False
 
 def get_entities_by_field(entity: db.Model, field, field_value, order_by_field=None) -> list:
     """
@@ -102,7 +118,7 @@ def get_entities_by_field(entity: db.Model, field, field_value, order_by_field=N
         list: Список найденных сущностей.
     """
     entities = entity.query.filter(field==field_value)
-    if order_by_field == None:
+    if order_by_field is None:
         return entities
     else:
         return entities.order_by(order_by_field)
@@ -124,7 +140,7 @@ def get_entities_by_field_with_order(entity: db.Model, field, field_value, order
     return entity.query.filter(field==field_value).order_by(order_by_field)
 
 
-def clean_db(models_to_clean):
+def clean_db():
     """
     Очищает базу данных, удаляя все записи указанных моделей.
 
@@ -135,9 +151,76 @@ def clean_db(models_to_clean):
         None
     """
     try:
-        for model in models_to_clean:
+        for model in [User, UavTelemetry, MissionStep, Mission, MissionSenderPublicKeys, UavPublicKeys, Uav]:
             db.session.query(model).delete()
         db.session.commit()
-    except:
+    except Exception:
+        db.session.rollback()
+
+def create_all():
+    try:
+        db.create_all()
+    except Exception:
         db.session.rollback()
     
+def get_key(key_group: str, private: bool):
+    """
+    Получает ключ из указанной группы.
+
+    Args:
+        key_group (str): Группа ключей.
+        private (bool): Флаг для получения приватного ключа.
+
+    Returns:
+        Ключ или кортеж (n, e) для публичного ключа, или -1 в случае ошибки.
+    """
+    if private is True:
+        if key_group in context.loaded_keys:
+            return context.loaded_keys[key_group]
+        else:
+            return None
+    
+    else:
+        if KeyGroup.KOS in key_group:
+            id = key_group.split(KeyGroup.KOS)[1]
+            key = get_entity_by_key(UavPublicKeys, id)
+            if key is None:
+                return -1
+            n, e = int(key.n), int(key.e)
+            
+        elif KeyGroup.MS in key_group:
+            id = key_group.split(KeyGroup.MS)[1]
+            key = get_entity_by_key(MissionSenderPublicKeys, id)
+            if key is None:
+                return -1
+            n, e = int(key.n), int(key.e)
+        
+        elif key_group == KeyGroup.ORVD:
+            key = context.loaded_keys[key_group].publickey()
+            n, e = key.n, key.e
+            
+        else:
+            print('Wrong group')
+            return -1
+        
+        return n, e
+
+
+def save_public_key(n: str, e: str, key_group: str) -> None:
+    """
+    Сохраняет публичный ключ в базу данных.
+
+    Args:
+        n (str): Модуль ключа.
+        e (str): Открытая экспонента.
+        key_group (str): Группа ключей.
+    """
+    if KeyGroup.KOS in key_group:
+        id = key_group.split(KeyGroup.KOS)[1]
+        entity = UavPublicKeys(uav_id=id, n=n, e=e)
+    elif KeyGroup.MS in key_group:
+        id = key_group.split(KeyGroup.MS)[1]
+        entity = MissionSenderPublicKeys(uav_id=id, n=n, e=e)
+    else:
+        print('Wrong group in utils.save_public_key')
+    add_and_commit(entity)    

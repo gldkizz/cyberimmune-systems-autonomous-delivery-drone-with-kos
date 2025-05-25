@@ -1,4 +1,4 @@
-from utils.api_handlers import bad_request, regular_request
+from handlers.api_handlers import bad_request, regular_request
 
 
 def test_bad_request():

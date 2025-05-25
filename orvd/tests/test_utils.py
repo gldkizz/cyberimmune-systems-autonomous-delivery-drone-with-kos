@@ -1,9 +1,8 @@
 import math
 import pytest 
-from utils.utils import *
+from utils import *
 
 from unittest.mock import patch, MagicMock
-from utils.utils import generate_keys
 
 mock_random_generator = MagicMock()
 mock_key = MagicMock()
