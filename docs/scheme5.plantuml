@@ -1,9 +1,8 @@
 @startuml scheme5
 
 package "ОРВД" {
-    HTTP - [Apache2]
-    [Apache2] - [Flask app]
-    [Flask app] - [SQLite]
+    [Apache2] - [Flask app\nОРВД]
+    [Flask app\nОРВД] - [SQLite]
 }
 
 package "Arducopter" {
@@ -22,11 +21,22 @@ package "External Planner" {
     [APM Planner 2]
 }
 
-[KOS] <--> HTTP : TCP 8080
-[SITL] <--> [KOS] : TCP 5765
+package "MQTT" {
+    [Mosquitto]
+}
+
+package "Инфо панель" {
+    [Apache2\nInfo Panel] - [Flask app\nInfo Panel]
+}
+
+[KOS] --> Apache2 : TCP 8080
+[SITL] <-- [KOS] : TCP 5765
 [MAVProxy] <--> [SITL] : Serial1 TCP 5760
 [MAVProxy] --> [SITL] : UDP 5501
 [APM Planner 2] <-- [MAVProxy] : UDP 14550
+[KOS] <--> [Mosquitto] : TCP 1883
+[Flask app\nОРВД] --> [Mosquitto] : TCP 1883
+[Flask app\nInfo Panel] --> [Mosquitto] : TCP 1883
 
 note right of [KOS]
     Модуль безопасности.
@@ -38,18 +48,25 @@ note right of [SITL]
     Симулятор квадрокоптера.
 end note
 
-note right of ОРВД
+note top of [Flask app\nОРВД]
     Система организации воздушного движения.
 end note
 
 note right of [MAVProxy]
-    Управляющая наземная станция 
+    Управляющая наземная станция
     для автономных систем с текстовым интерфейсом.
 end note
 
 note right of [APM Planner 2]
-    Управляющая наземная станция 
+    Управляющая наземная станция
     для автономных систем с графическим интерфейсом.
 end note
 
+note right of [Mosquitto]
+    Брокер сообщений
+end note
+
+note top of [Flask app\nInfo Panel]
+    Панель информации
+end note
 @enduml
