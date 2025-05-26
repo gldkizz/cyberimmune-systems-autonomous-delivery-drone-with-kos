@@ -16,57 +16,30 @@
 #include <stdio.h>
 #include <string.h>
 
+int flightStatusSend, missionSend, areasSend, armSend, newMissionSend;
+
 int initServerConnector() {
     if (strlen(BOARD_ID))
         setBoardName(BOARD_ID);
     else
         setBoardName("00:00:00:00:00:00");
 
+    flightStatusSend = true;
+    missionSend = true;
+    areasSend = true;
+    armSend= false;
+    newMissionSend = false;
+
     return 1;
 }
 
 int requestServer(char* query, char* response, uint32_t responseSize) {
-    if (strstr(query, "/api/flight_info?") != NULL) {
-        if (responseSize < 103) {
-            logEntry("Size of response does not fit given buffer", ENTITY_NAME, LogLevel::LOG_WARNING);
-            return 0;
-        }
-        strncpy(response, "$Flight 0$ForbiddenZonesHash 0faa8891ae3eb2d172ed240008cc93b80b568dfea98c9335f5217fb315f9ff69$Delay 1#", 103);
-    }
-    else if (strstr(query, "/api/auth?") != NULL) {
+    if (strstr(query, "/api/auth?")) {
         if (responseSize < 10) {
             logEntry("Size of response does not fit given buffer", ENTITY_NAME, LogLevel::LOG_WARNING);
             return 0;
         }
         strncpy(response, "$Success#", 10);
-    }
-    else if (strstr(query, "/api/fmission_kos?") != NULL) {
-        if (responseSize < 511) {
-            logEntry("Size of response does not fit given buffer", ENTITY_NAME, LogLevel::LOG_WARNING);
-            return 0;
-        }
-        strncpy(response, "$FlightMission H60.0026843_27.8573162_0.00&T1.0&W60.0026580_27.8574141_1.0&D5.0&W60.0026345_27.8573863_1.0&W60.0026494_27.8573387_1.0&W60.0026070_27.8572912_1.0&W60.0025934_27.8573410_1.0&W60.0025706_27.8573149_1.0&W60.0025990_27.8572197_1.0&D3.0&S5.0_1200.0&D1.0&S5.0_1800.0&W60.0026617_27.8572921_1.0&L0.0000000_0.0000000_0.0#", 329);
-    }
-    else if (strstr(query, "/api/nmission?") != NULL) {
-        if (responseSize < 13) {
-            logEntry("Size of response does not fit given buffer", ENTITY_NAME, LogLevel::LOG_WARNING);
-            return 0;
-        }
-        strncpy(response, "$Approve 0#", 13);
-    }
-    else if ((strstr(query, "/api/arm?") != NULL) || (strstr(query, "/api/fly_accept?") != NULL)) {
-        if (responseSize < 16) {
-            logEntry("Size of response does not fit given buffer", ENTITY_NAME, LogLevel::LOG_WARNING);
-            return 0;
-        }
-        strncpy(response, "$Arm 0$Delay 1#", 16);
-    }
-    else if (strstr(query, "/api/get_all_forbidden_zones?") != NULL) {
-        if (responseSize < 191) {
-            logEntry("Size of response does not fit given buffer", ENTITY_NAME, LogLevel::LOG_WARNING);
-            return 0;
-        }
-        strncpy(response, "$ForbiddenZones 0#", 19);
     }
     else {
         if (responseSize < 3) {
@@ -80,5 +53,62 @@ int requestServer(char* query, char* response, uint32_t responseSize) {
 }
 
 int publish(char* topic, char* publication) {
+    if (strstr(topic, "api/arm/request"))
+        armSend = true;
+    else if (strstr(topic, "api/nmission/request"))
+        newMissionSend = true;
+
+    return 1;
+}
+
+int getSubscription(char* topic, char* message, uint32_t messageSize) {
+    if (strstr(topic, "ping/")) {
+        if (messageSize < 10) {
+            logEntry("Size of response does not fit given buffer", ENTITY_NAME, LogLevel::LOG_WARNING);
+            return 0;
+        }
+        strncpy(message, "$Delay 1#", 10);
+    }
+    else if (strstr(topic, "api/flight_status/") && flightStatusSend) {
+        if (messageSize < 11) {
+            logEntry("Size of response does not fit given buffer", ENTITY_NAME, LogLevel::LOG_WARNING);
+            return 0;
+        }
+        strncpy(message, "$Flight 0#", 11);
+        flightStatusSend = false;
+    }
+    else if (strstr(topic, "api/fmission_kos/") && missionSend) {
+        if (messageSize < 327) {
+            logEntry("Size of response does not fit given buffer", ENTITY_NAME, LogLevel::LOG_WARNING);
+            return 0;
+        }
+        strncpy(message, "$FlightMission H60.0144850_27.8200870_20.00&T1.0&W60.0144222_27.8200360_1.0&W60.0144105_27.8201212_1.0&W60.0144478_27.8201520_1.0&W60.0144280_27.8202989_1.0&W60.0143923_27.8202660_1.0&W60.0143809_27.8203599_1.0&W60.0144471_27.8204216_1.0&D3.0&S5.0_1200.0&D1.0&S5.0_1800.0&W60.0144756_27.8201668_1.0&L60.0144756_27.8201668_0.0#", 327);
+        missionSend = false;
+    }
+    else if (strstr(topic, "api/forbidden_zones") && areasSend) {
+        if (messageSize < 19) {
+            logEntry("Size of response does not fit given buffer", ENTITY_NAME, LogLevel::LOG_WARNING);
+            return 0;
+        }
+        strncpy(message, "$ForbiddenZones 0#", 19);
+        areasSend = false;
+    }
+    else if (strstr(topic, "api/arm/response/") && armSend) {
+        if (messageSize < 16) {
+            logEntry("Size of response does not fit given buffer", ENTITY_NAME, LogLevel::LOG_WARNING);
+            return 0;
+        }
+        strncpy(message, "$Arm 0$Delay 1#", 16);
+    }
+    else if (strstr(topic, "api/nmission/response/") && newMissionSend) {
+        if (messageSize < 13) {
+            logEntry("Size of response does not fit given buffer", ENTITY_NAME, LogLevel::LOG_WARNING);
+            return 0;
+        }
+        strncpy(message, "$Approve 0#", 13);
+    }
+    else
+        strcpy(message, "");
+
     return 1;
 }

@@ -96,6 +96,8 @@ entities:
   connections:
   - target: kl.VfsSdCardFs
     id: kl.VfsSdCardFs
+  - target: drone_controller.ServerConnector
+    id: server_connector_connection
 @INIT_Logger_ENTITY_CONNECTIONS@
 
 - name: drone_controller.KlogEntity
@@ -103,7 +105,6 @@ entities:
   connections:
   - target: drone_controller.KlogStorageEntity
     id: {var: KLOG_STORAGE_SERVER_CONNECTION_ID, include: klog_storage/client.h}
-
 - name: drone_controller.KlogStorageEntity
 
 @INIT_EXTERNAL_ENTITIES@

@@ -39,12 +39,6 @@ bool hasPosition() {
 }
 
 void sendCoords() {
-    char boardId[32] = {0};
-    while (!getBoardId(boardId)) {
-        logEntry("Failed to get board ID from ServerConnector. Trying again in 1s", ENTITY_NAME, LogLevel::LOG_WARNING);
-        sleep(1);
-    }
-
     char publication[1024] = {0};
 
     float dop, speed;
@@ -65,7 +59,7 @@ void sendCoords() {
             azimuth = round(atan2(lng - prevLng, lat - prevLat) * 1800000000 / M_PI);
             prevLat = lat;
             prevLng = lng;
-            snprintf(publication, 1024, "id=%s&lat=%d&lon=%d&alt=%d&azimuth=%d&dop=%f&sats=%d&speed=%f", boardId, lat, lng, alt, azimuth, dop, sats, speed);
+            snprintf(publication, 1024, "lat=%d&lon=%d&alt=%d&azimuth=%d&dop=%f&sats=%d&speed=%f", lat, lng, alt, azimuth, dop, sats, speed);
             if (!publishMessage("api/telemetry", publication))
                 logEntry("Failed to publish telemetry message. Trying again in 500ms", ENTITY_NAME, LogLevel::LOG_WARNING);
         }

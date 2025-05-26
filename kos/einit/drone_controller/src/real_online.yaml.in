@@ -71,6 +71,8 @@ entities:
   connections:
   - target: kl.VfsSdCardFs
     id: kl.VfsSdCardFs
+  - target: drone_controller.ServerConnector
+    id: server_connector_connection
 @INIT_Logger_ENTITY_CONNECTIONS@
 
 @INIT_EXTERNAL_ENTITIES@
