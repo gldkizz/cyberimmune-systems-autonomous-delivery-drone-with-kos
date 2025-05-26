@@ -1,8 +1,8 @@
 import json
 from extensions import mqtt_client as mqtt
 from utils import sign, generate_forbidden_zones_string
-from db.dao import get_entity_by_key
-from db.models import Uav
+from db.dao import get_entity_by_key, get_entities_by_field_with_order
+from db.models import Uav, Mission, MissionStep
 from constants import MQTTTopic, KeyGroup, FORBIDDEN_ZONES_PATH
 
 def mqtt_publish_flight_state(id: str, *args, **kwargs):
@@ -40,3 +40,15 @@ def mqtt_publish_forbidden_zones(*args, **kwargs):
     except Exception as e:
         print(e)
         return
+    
+def mqtt_send_mission(id: str, *args, **kwargs):
+    uav_entity = get_entity_by_key(Uav, id)
+    if uav_entity:
+        mission = get_entity_by_key(Mission, id)
+        if mission and mission.is_accepted:
+            mission_steps = get_entities_by_field_with_order(MissionStep, MissionStep.mission_id, id, order_by_field=MissionStep.step)
+            if mission_steps and mission_steps.count() != 0:
+                mission_steps = list(map(lambda e: e.operation, mission_steps))
+                message = f'$FlightMission {"&".join(mission_steps)}'
+                message = f'{message}#{hex(sign(message, KeyGroup.ORVD))[2:]}'
+                mqtt.publish_message(MQTTTopic.FMISSION_KOS.format(id=id), message)

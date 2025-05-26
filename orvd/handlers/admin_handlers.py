@@ -14,7 +14,7 @@ from utils import (
     get_sha256_hex, get_new_polygon_feature, compute_and_save_forbidden_zones_delta
 )
 from .mqtt_handlers import (
-    mqtt_publish_flight_state, mqtt_publish_forbidden_zones, mqtt_publish_ping
+    mqtt_publish_flight_state, mqtt_publish_forbidden_zones, mqtt_publish_ping, mqtt_send_mission
 )
 
 
@@ -189,9 +189,12 @@ def mission_decision_handler(id: str, decision: int):
     else:
         if decision == 0:
             mission_entity.is_accepted = True
+            commit_changes()
+            flush()
+            mqtt_send_mission(id)
         else:
             mission_entity.is_accepted = False
-        commit_changes()
+            commit_changes()
         return OK
 
 
@@ -464,11 +467,14 @@ def revise_mission_decision_handler(id: str, decision: int):
             uav_entity.is_armed = True
             uav_entity.state = 'В полете'
             mission_entity.is_accepted = True
+            commit_changes()
+            flush()
+            mqtt_send_mission(id)
         else:
             uav_entity.is_armed = False
             uav_entity.state = 'В сети'
             mission_entity.is_accepted = False
-        commit_changes()
+            commit_changes()
         context.revise_mission_queue.remove(id)
         return f'$Arm: {decision}'
     else:
