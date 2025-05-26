@@ -5,9 +5,8 @@ import time
 from context import context
 from extensions import task_scheduler_client as scheduler
 from constants import (
-    ARMED, DISARMED, KILL_SWITCH_ON, KILL_SWITCH_OFF,
+    ARMED, DISARMED, NOT_FOUND, OK, LOGS_PATH,
     FORBIDDEN_ZONES_PATH, FORBIDDEN_ZONES_DELTA_PATH,
-    NOT_FOUND, OK, LOGS_PATH
 )
 from db.dao import (
     add_and_commit, add_changes, commit_changes, delete_entity, get_entity_by_key,
@@ -63,12 +62,7 @@ def auth_handler(id: str):
         commit_changes()
         
     flush()
-    scheduler.add_interval_task(
-        task_name=f"flight_state_{id}",
-        seconds=1,
-        func=mqtt_publish_flight_state,
-        args=(id,)
-    )
+    mqtt_publish_flight_state(id)
     scheduler.add_interval_task(
         task_name=f"ping_{id}",
         seconds=uav_entity.delay,
@@ -106,6 +100,8 @@ def arm_handler(id: str, **kwargs):
             else:
                 uav_entity.state = 'В сети'
             commit_changes()
+            flush()
+            mqtt_publish_flight_state(id)
             return f'$Arm {decision}$Delay {uav_entity.delay}'
         else:
             return f'$Arm {DISARMED}$Delay {uav_entity.delay}'
@@ -128,44 +124,6 @@ def _arm_wait_decision(id: str):
         return ARMED
     else:
         return DISARMED
-
-
-def fly_accept_handler(id: str):
-    """
-    Обрабатывает запрос на принятие полета БПЛА.
-
-    Args:
-        id (str): Идентификатор БПЛА.
-
-    Returns:
-        str: Статус арма БПЛА.
-    """
-    uav_entity = get_entity_by_key(Uav, id)
-    if not uav_entity:
-        return NOT_FOUND
-    elif uav_entity.is_armed:
-        return f'$Arm {ARMED}$Delay {uav_entity.delay}'
-    else:
-        return f'$Arm {DISARMED}$Delay {uav_entity.delay}'
-
-
-def kill_switch_handler(id: str):
-    """
-    Обрабатывает запрос на проверку состояния аварийного выключателя БПЛА.
-
-    Args:
-        id (str): Идентификатор БПЛА.
-
-    Returns:
-        str: Состояние аварийного выключателя.
-    """
-    uav_entity = get_entity_by_key(Uav, id)
-    if not uav_entity:
-        return NOT_FOUND
-    elif uav_entity.kill_switch_state:
-        return f'$KillSwitch {KILL_SWITCH_ON}'
-    else:
-        return f'$KillSwitch {KILL_SWITCH_OFF}'
 
 
 def flight_info_handler(id: str) -> str:
@@ -358,6 +316,8 @@ def revise_mission_handler(id: str, mission: str, **kwargs):
         uav_entity.is_armed = False
         uav_entity.state = 'Ожидает'
         commit_changes()
+        flush()
+        mqtt_publish_flight_state(id)
         
     context.revise_mission_queue.add(id)
     while id in context.revise_mission_queue:

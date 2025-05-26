@@ -1,7 +1,6 @@
 import os
 import json
 from flask import request, render_template, redirect, jsonify, send_file
-from context import context
 from db.dao import check_user_token
 from constants import (
     APIRoute, AdminRoute, GeneralRoute, KeyGroup, FORBIDDEN_ZONES_PATH, TILES_PATH
@@ -11,11 +10,8 @@ from utils import (
     bad_request, regular_request, signed_request, authorized_request
 )
 from handlers.api_handlers import (
-    key_kos_exchange_handler, auth_handler, arm_handler,
-    fly_accept_handler, kill_switch_handler, flight_info_handler,
-    telemetry_handler, fmission_kos_handler, get_all_forbidden_zones_handler,
+    key_kos_exchange_handler, auth_handler, get_all_forbidden_zones_handler,
     get_forbidden_zones_delta_handler, get_forbidden_zones_hash_handler,
-    revise_mission_handler, save_logs_handler
 )
 from handlers.admin_handlers import (
     admin_auth_handler, arm_decision_handler, force_disarm_handler,

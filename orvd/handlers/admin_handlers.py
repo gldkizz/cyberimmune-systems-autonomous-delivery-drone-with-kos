@@ -80,6 +80,8 @@ def force_disarm_handler(id: str):
         uav_entity.is_armed = False
         uav_entity.state = 'В сети'
         commit_changes()
+        flush()
+        mqtt_publish_flight_state(id)
         return OK
 
 
@@ -475,6 +477,8 @@ def revise_mission_decision_handler(id: str, decision: int):
             uav_entity.state = 'В сети'
             mission_entity.is_accepted = False
             commit_changes()
+            flush()
+        mqtt_publish_flight_state(id)
         context.revise_mission_queue.remove(id)
         return f'$Arm: {decision}'
     else:
