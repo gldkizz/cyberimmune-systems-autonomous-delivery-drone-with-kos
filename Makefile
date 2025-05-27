@@ -89,6 +89,13 @@ shell-orvd:
 shell-orvd-real:
 	docker run --volume="`pwd`:/home/user/" --name orvd -w /home/user/orvd --net simulator -p 8080:8080 --ip 172.28.0.4 -it --rm orvd /bin/bash -i
 
+start-mqtt-server:
+	docker run --name mqtt-server -p 1883:1883 -p 8883:8883 --rm mqtt-server
+
+start-orvd:
+	[ -n "$$mqttserver" ] || read -p "Please enter MQTT server IP: " mqttserver; \
+	docker run --name orvd -ti -e MQTT_HOST=$$mqttserver -w /home/user/orvd -p 8080:8080 --rm orvd
+
 e2e-offline: docker-image
 	docker-compose -f tests/e2e-offline-docker-compose.yml up --abort-on-container-exit --exit-code-from mavproxy
 	docker-compose -f tests/e2e-offline-docker-compose.yml down
