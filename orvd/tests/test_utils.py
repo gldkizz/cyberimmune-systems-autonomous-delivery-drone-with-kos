@@ -73,8 +73,8 @@ def test_encode_mission():
     assert encode_mission(mission_list) == expected
 
 
-@patch('utils.utils.Random.new')
-@patch('utils.utils.RSA.generate')
+@patch('utils.keys.Random.new')
+@patch('utils.keys.RSA.generate')
 def test_generate_keys_success(mock_rsa_generate, mock_random_new):
     mock_random_new.return_value.read = mock_random_generator
     mock_rsa_generate.return_value = mock_key
