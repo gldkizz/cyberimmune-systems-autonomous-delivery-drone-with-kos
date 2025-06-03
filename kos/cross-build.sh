@@ -6,7 +6,7 @@ BUILD="${SCRIPT_DIR}/build"
 export LANG=C
 export TARGET="aarch64-kos"
 export PKG_CONFIG=""
-export SDK_PREFIX="/opt/KasperskyOS-Community-Edition-RaspberryPi4b-wifi"
+export SDK_PREFIX="/opt/$SDK_FOLDER_NAME"
 export INSTALL_PREFIX="$BUILD/../install"
 export PATH="$SDK_PREFIX/toolchain/bin:$PATH"
 

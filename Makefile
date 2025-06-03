@@ -1,5 +1,11 @@
 .PHONY: docker-compose-stop docs
 
+SDK_FOLDER_NAME=KasperskyOS-Community-Edition-RaspberryPi4b-1.3.0.166
+SDK_PKG_NAME=KasperskyOS-Community-Edition-RaspberryPi4b-1.3.0.166_ru.deb
+
+# SDK_FOLDER_NAME=KasperskyOS-Community-Edition-RaspberryPi4b-wifi
+# SDK_PKG_NAME=KasperskyOS-Community-Edition-RaspberryPi4b-1.3.0_amd64.deb
+
 docs:
 	doxygen Doxyfile
 
@@ -8,7 +14,7 @@ docker: docker-image
 docker-image: docker-image-simulator docker-image-orvd docker-image-mqtt-server
 
 docker-image-simulator:
-	docker build ./ -t simulator
+	docker build ./ -t simulator --build-arg SDK_FOLDER_NAME=$(SDK_FOLDER_NAME) --build-arg SDK_PKG_NAME=$(SDK_PKG_NAME)
 
 docker-image-orvd:
 	docker build -f orvd.Dockerfile -t orvd ./
