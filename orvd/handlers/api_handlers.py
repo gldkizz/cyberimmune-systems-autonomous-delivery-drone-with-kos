@@ -18,7 +18,7 @@ from utils import (
     cast_wrapper, generate_forbidden_zones_string,
     get_sha256_hex
 )
-from .mqtt_handlers import mqtt_publish_flight_state, mqtt_publish_ping, mqtt_publish_forbidden_zones
+from .mqtt_handlers import mqtt_publish_flight_state, mqtt_publish_ping, mqtt_publish_forbidden_zones, mqtt_publish_auth
     
 def key_kos_exchange_handler(id: str, n: str, e: str):
     """
@@ -70,6 +70,7 @@ def auth_handler(id: str):
         args=(id,)
     )
     mqtt_publish_forbidden_zones()
+    mqtt_publish_auth(id)
     
     return f'$Auth id={id}'
 

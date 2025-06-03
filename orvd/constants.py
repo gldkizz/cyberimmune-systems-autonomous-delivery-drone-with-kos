@@ -56,6 +56,7 @@ class MQTTTopic:
     FLIGHT_STATUS = 'api/flight_status/{id}'
     FORBIDDEN_ZONES = 'api/forbidden_zones'
     FMISSION_KOS = 'api/fmission_kos/{id}'
+    AUTH = 'api/auth/{id}'
     
 class APIRoute:
     NMISSION = '/api/nmission'

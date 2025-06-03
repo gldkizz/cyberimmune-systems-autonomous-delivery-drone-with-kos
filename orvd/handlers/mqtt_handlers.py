@@ -28,6 +28,11 @@ def mqtt_publish_ping(id: str, *args, **kwargs):
         message = f'$Delay {uav_entity.delay}'
     message = f'{message}#{hex(sign(message, KeyGroup.ORVD))[2:]}'
     mqtt.publish_message(MQTTTopic.PING.format(id=id), message)
+    
+def mqtt_publish_auth(id: str, *args, **kwargs):
+    message = f'$Auth {id}'
+    signed_message = f'{message}#{hex(sign(message, KeyGroup.ORVD))[2:]}'
+    mqtt.publish_message(MQTTTopic.AUTH.format(id=id), signed_message)
 
 def mqtt_publish_forbidden_zones(*args, **kwargs):
     try:
