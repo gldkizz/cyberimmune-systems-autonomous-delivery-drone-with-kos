@@ -78,11 +78,11 @@ int getSubscription(char* topic, char* message, uint32_t messageSize) {
         flightStatusSend = false;
     }
     else if (strstr(topic, "api/fmission_kos/") && missionSend) {
-        if (messageSize < 327) {
+        if (messageSize < 329) {
             logEntry("Size of response does not fit given buffer", ENTITY_NAME, LogLevel::LOG_WARNING);
             return 0;
         }
-        strncpy(message, "$FlightMission H60.0144850_27.8200870_20.00&T1.0&W60.0144222_27.8200360_1.0&W60.0144105_27.8201212_1.0&W60.0144478_27.8201520_1.0&W60.0144280_27.8202989_1.0&W60.0143923_27.8202660_1.0&W60.0143809_27.8203599_1.0&W60.0144471_27.8204216_1.0&D3.0&S5.0_1200.0&D1.0&S5.0_1800.0&W60.0144756_27.8201668_1.0&L60.0144756_27.8201668_0.0#", 327);
+        strncpy(message, "$FlightMission H60.0026843_27.8573162_0.00&T1.0&W60.0026580_27.8574141_1.0&D5.0&W60.0026345_27.8573863_1.0&W60.0026494_27.8573387_1.0&W60.0026070_27.8572912_1.0&W60.0025934_27.8573410_1.0&W60.0025706_27.8573149_1.0&W60.0025990_27.8572197_1.0&D3.0&S5.0_1200.0&D1.0&S5.0_1800.0&W60.0026617_27.8572921_1.0&L0.0000000_0.0000000_0.0#", 329);
         missionSend = false;
     }
     else if (strstr(topic, "api/forbidden_zones") && areasSend) {

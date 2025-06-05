@@ -46,10 +46,6 @@ void pingSession() {
         }
 
         if (strcmp(pingMessage, "")) {
-            //No response from the server
-            //If server does not respond for 3 more seconds, flight must be paused until the response is received 
-        }
-        else {
             uint8_t authenticity = 0;
             if (!checkSignature(pingMessage, authenticity) || !authenticity) {
                 logEntry("Failed to check signature of ping received through Server Connector", ENTITY_NAME, LogLevel::LOG_WARNING);
@@ -58,6 +54,10 @@ void pingSession() {
 
             //Processing delay until next session
             sessionDelay = parseDelay(strstr(pingMessage, "$Delay "));
+        }
+        else {
+            //No response from the server
+            //If server does not respond for 3 more seconds, flight must be paused until the response is received 
         }
 
         sleep(sessionDelay);
@@ -91,7 +91,7 @@ void serverUpdateCheck() {
                     //Implementation is required to be done
                 }
                 else
-                    logEntry("Failed to check signature of ping received through Server Connector", ENTITY_NAME, LogLevel::LOG_WARNING);
+                    logEntry("Failed to check signature of flight status received through Server Connector", ENTITY_NAME, LogLevel::LOG_WARNING);
             }
         }
         else
@@ -108,7 +108,7 @@ void serverUpdateCheck() {
                     //Path recalculation must be done if current path crosses new no-flight areas
                 }
                 else
-                    logEntry("Failed to check signature of ping received through Server Connector", ENTITY_NAME, LogLevel::LOG_WARNING);
+                    logEntry("Failed to check signature of no-flight areas received through Server Connector", ENTITY_NAME, LogLevel::LOG_WARNING);
             }
         }
         else
