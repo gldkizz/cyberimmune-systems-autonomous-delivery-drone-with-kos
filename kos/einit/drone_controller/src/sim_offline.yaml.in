@@ -96,6 +96,7 @@ entities:
   connections:
   - target: drone_controller.KlogStorageEntity
     id: {var: KLOG_STORAGE_SERVER_CONNECTION_ID, include: klog_storage/client.h}
+
 - name: drone_controller.KlogStorageEntity
 
 @INIT_EXTERNAL_ENTITIES@
