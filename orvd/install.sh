@@ -11,7 +11,9 @@ ufw reload
 apt-get -y install python3 \
         python3-pip \
         python3-venv \
+        python3-apscheduler \
         python3-blinker \
+        python3-dotenv \
         python3-flask \
         python3-flask-migrate \
         python3-flask-sqlalchemy \
@@ -20,6 +22,7 @@ apt-get -y install python3 \
         python3-mako \
         python3-markupsafe \
         python3-pycryptodome \
+        python3-flask-socketio \
         python3-typing-extensions \
         python3-werkzeug \
         python3-jinja2 \

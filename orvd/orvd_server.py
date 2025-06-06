@@ -1,67 +1,45 @@
 import os
-import paho.mqtt.client as mqtt
+import logging
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
-from flasgger import Swagger
-from urllib.parse import parse_qs
 
-db = SQLAlchemy()
+from context import context
+from extensions import swagger
+from db import clean_db, generate_user, create_all, init_app as db_init_app
+from handlers import init_app as handlers_init_app
+from routes import init_app as routes_init_app
+from constants import log_level_map
+from utils import generate_orvd_keys
 
-def create_app():
-    app = Flask(__name__)
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///orvd.db"
-    app.config['SQLALCHEMY_ECHO'] = False
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SWAGGER'] = {
+class FlaskConfig:
+    SQLALCHEMY_ECHO = False
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///orvd.db'
+    SWAGGER = {
         'title': 'ORVD API',
         'uiversion': 3
     }
-    db.init_app(app)
-    Migrate(app, db)
-    Swagger(app)
-    
-    from routes import bp as main_bp
-    app.register_blueprint(main_bp)
-    
-    MQTT_BROKER = os.environ.get("MQTT_HOST", "localhost")
-    MQTT_PORT = 1883
-    MQTT_TELEMETRY_TOPIC = 'api/telemetry'
-    MQTT_MISSION_TOPIC = 'api/mission'
-    mqtt_client = mqtt.Client()
-    def on_connect(client, userdata, flags, rc):
-        client.subscribe(MQTT_TELEMETRY_TOPIC)
-        client.subscribe(MQTT_MISSION_TOPIC)
-        
-    def on_telemetry_message(client, userdata, msg):
-        query_string = msg.payload.decode()
-        query_params = parse_qs(query_string)
-        single_value_params = {k: v[0] for k, v in query_params.items()}
-        with app.app_context():
-            regular_request(handler_func=telemetry_handler, **single_value_params)
-            
-    def on_mission_message(client, userdata, msg):
-        payload = json.loads(msg.payload.decode())
-        with app.app_context():
-            regular_request(handler_func=fmission_ms_handler, **payload)
 
-
-    mqtt_client.on_connect = on_connect
-    mqtt_client.message_callback_add(MQTT_TELEMETRY_TOPIC, on_telemetry_message)
-    mqtt_client.message_callback_add(MQTT_MISSION_TOPIC, on_mission_message)
-    mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)
-    with app.app_context():
-        mqtt_client.loop_start()
+def create_app():
+    app = Flask(__name__)
+    app.config.from_object(FlaskConfig)
+    
+    app_log_level_str = os.getenv("APP_LOG_LEVEL", "INFO").upper()
+    context.log_level = log_level_map.get(app_log_level_str, logging.INFO)
+    
+    swagger.init_app(app)
+    db_init_app(app)
+    handlers_init_app(app)
+    routes_init_app(app)
+    
+    generate_orvd_keys()
     
     return app
 
-from utils.api_handlers import *
-
 def clean_app_db(app):
     with app.app_context():
-        db.create_all()
-        clean_db([UavTelemetry, MissionStep, Mission, MissionSenderPublicKeys, UavPublicKeys, Uav, User])
-        generate_user(User)
+        create_all()
+        clean_db()
+        generate_user()
 
 
 if __name__ == "__main__":

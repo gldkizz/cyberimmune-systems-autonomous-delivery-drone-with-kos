@@ -184,7 +184,7 @@ int checkMessageSignature(char* message, uint8_t &correct) {
 
     char* signatureStart = strstr(message, "#");
     if (signatureStart == NULL) {
-        logEntry("Received mission has no signature", ENTITY_NAME, LogLevel::LOG_WARNING);
+        logEntry("Received message has no signature", ENTITY_NAME, LogLevel::LOG_WARNING);
         return 0;
     }
     uint32_t messageLength = signatureStart - message;

@@ -15,6 +15,8 @@
 #include <sys/select.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <vector>
+#include <thread>
 
 #include <kos_net.h>
 #include <mosquittopp.h>
@@ -26,8 +28,24 @@
 
 uint16_t serverPort = 8080;
 uint16_t publishPort = 1883;
-bool publishConnected = false;
-mosqpp::mosquittopp *publisher;
+mosqpp::mosquittopp *publisher, *subscriber;
+std::thread subscriberThread;
+std::vector<mosquitto_message*> messages;
+
+class MqttSubscriber : public mosqpp::mosquittopp {
+    void on_message(const struct mosquitto_message *message) override {
+        mosquitto_message* newMessage = new mosquitto_message();
+        mosquitto_message_copy(newMessage, message);
+        for (int i = 0; i < messages.size(); i++)
+            if (!strcmp(messages[i]->topic, newMessage->topic)) {
+                mosquitto_message* tmp = messages[i];
+                messages[i] = newMessage;
+                mosquitto_message_free(&tmp);
+                return;
+            }
+        messages.push_back(newMessage);
+    }
+};
 /** \endcond */
 
 /**
@@ -39,14 +57,14 @@ mosqpp::mosquittopp *publisher;
 int setMacId() {
     ifaddrs *address;
     if (getifaddrs(&address) == -1) {
-        logEntry("Failed to get 'en0' MAC-address", ENTITY_NAME, LogLevel::LOG_ERROR);
+        logEntry("Failed to get MAC-address", ENTITY_NAME, LogLevel::LOG_ERROR);
         return 0;
     }
 
     uint8_t mac[ETHER_ADDR_LEN] = {0};
     for (ifaddrs *ifa = address; ifa != NULL; ifa = ifa->ifa_next) {
         char *name = ifa->ifa_name;
-        if (strcmp(name, "en0") || strcmp(name, "wl0") || (ifa->ifa_flags & IFF_LOOPBACK))
+        if ((strcmp(name, "en0") && strcmp(name, "wl0")) || (ifa->ifa_flags & IFF_LOOPBACK))
             continue;
         struct sockaddr_in *sock = (struct sockaddr_in*)(ifa->ifa_addr);
         if ((sock == NULL) || (sock->sin_family != AF_LINK))
@@ -74,13 +92,32 @@ int initServerConnector() {
 
     mosqpp::lib_init();
     publisher = new mosqpp::mosquittopp();
+    publisher->connect(MQTT_IP, publishPort, 3600);
+    subscriber = new MqttSubscriber();
+    subscriber->connect(MQTT_IP, publishPort, 3600);
 
-    if (strlen(BOARD_ID)) {
+    if (strlen(BOARD_ID))
         setBoardName(BOARD_ID);
-        return 1;
-    }
-    else
-        return setMacId();
+    else if (!setMacId())
+        return 0;
+
+    char topic[64] = {0};
+    char* boardName = getBoardName();
+    snprintf(topic, 64, "ping/%s", boardName);
+    subscriber->subscribe(NULL, topic);
+    snprintf(topic, 64, "api/flight_status/%s", boardName);
+    subscriber->subscribe(NULL, topic);
+    snprintf(topic, 64, "api/fmission_kos/%s", boardName);
+    subscriber->subscribe(NULL, topic);
+    snprintf(topic, 64, "api/arm/response/%s", boardName);
+    subscriber->subscribe(NULL, topic);
+    snprintf(topic, 64, "api/nmission/response/%s", boardName);
+    subscriber->subscribe(NULL, topic);
+    snprintf(topic, 64, "api/forbidden_zones", boardName);
+    subscriber->subscribe(NULL, topic);
+    subscriberThread = std::thread([&](){ subscriber->loop_forever(); });
+
+    return 1;
 }
 
 int requestServer(char* query, char* response, uint32_t responseSize) {
@@ -158,14 +195,6 @@ int requestServer(char* query, char* response, uint32_t responseSize) {
         }
     close(socketDesc);
 
-    if (strstr(content, "HTTP/1.1 403 FORBIDDEN")) {
-        char logBuffer[256] = {0};
-        snprintf(logBuffer, 256, "Connection to %s:%d is not responding", SERVER_IP, serverPort);
-        logEntry(logBuffer, ENTITY_NAME, LogLevel::LOG_WARNING);
-        strncpy(response, "TIMEOUT", 8);
-        return 1;
-    }
-
     char* msg = strstr(content, "$");
     uint32_t len = strlen(msg);
     if (msg == NULL) {
@@ -183,21 +212,32 @@ int requestServer(char* query, char* response, uint32_t responseSize) {
 }
 
 int publish(char* topic, char* publication) {
-    if (!publishConnected) {
-        publishConnected = !publisher->connect_async(MQTT_IP, publishPort);
-        if (!publishConnected) {
-            logEntry("Connection to MQTT broker has failed", ENTITY_NAME, LogLevel::LOG_WARNING);
-            return 0;
-        }
-    }
-
     char idTopic[256];
     snprintf(idTopic, 256, "%s/%s", topic, getBoardName());
 
-    if (publisher && publishConnected && !publisher->publish(NULL, idTopic, strlen(publication), publication))
+    if (!publisher->publish(NULL, idTopic, strlen(publication), publication))
         return 1;
     else {
         logEntry("Failed to publish message", ENTITY_NAME, LogLevel::LOG_WARNING);
         return 0;
     }
+}
+
+int getSubscription(char* topic, char* message, uint32_t messageSize) {
+    int idx = -1;
+    for (int i = 0; i < messages.size(); i++)
+        if (strstr(messages[i]->topic, topic)) {
+            idx = i;
+            break;
+        }
+
+    if (idx == -1)
+        strncpy(message, "", messageSize);
+    else {
+        strncpy(message, (char*)(messages[idx]->payload), messageSize);
+        mosquitto_message_free(&messages[idx]);
+        messages.erase(messages.begin() + idx);
+    }
+
+    return 1;
 }

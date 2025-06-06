@@ -78,3 +78,30 @@ nk_err_t PublishMessageImpl(struct ServerConnectorInterface *self,
     res->success = publish(topic, publication);
     return NK_EOK;
 }
+
+nk_err_t ReceiveSubscriptionImpl(struct ServerConnectorInterface *self,
+                    const ServerConnectorInterface_ReceiveSubscription_req *req, const struct nk_arena *reqArena,
+                    ServerConnectorInterface_ReceiveSubscription_res *res, struct nk_arena *resArena) {
+    char topic[ServerConnectorInterface_MaxTopicLength + 1] = {0};
+    char subscription[ServerConnectorInterface_MaxSubscriptionLength + 1] = {0};
+
+    nk_uint32_t len = 0;
+    nk_char_t *msg = nk_arena_get(nk_char_t, reqArena, &(req->topic), &len);
+    if (msg == NULL)
+        return NK_EBADMSG;
+    else if (len > ServerConnectorInterface_MaxTopicLength)
+        return NK_ENOMEM;
+    strncpy(topic, msg, len);
+
+    res->success = getSubscription(topic, subscription, ServerConnectorInterface_MaxSubscriptionLength + 1);
+
+    len = strlen(subscription);
+    msg = nk_arena_alloc(nk_char_t, resArena, &(res->subscription), len + 1);
+    if (msg == NULL)
+        return NK_EBADMSG;
+    else if (len > ServerConnectorInterface_MaxSubscriptionLength)
+        return NK_ENOMEM;
+    strncpy(msg, subscription, len);
+
+    return NK_EOK;
+}

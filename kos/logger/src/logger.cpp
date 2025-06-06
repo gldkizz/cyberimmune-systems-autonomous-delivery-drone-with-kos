@@ -19,21 +19,15 @@
 #include <spdlog/pattern_formatter.h>
 #include <spdlog/spdlog.h>
 
-#include <thread>
 #include <unistd.h>
 
 /** \cond */
 bool serverIsReady = false;
+char logMessage[1024] = {0};
 
 std::shared_ptr<spdlog::logger> logger;
 std::shared_ptr<spdlog::sinks::ringbuffer_sink_mt> ringSink;
 /** \endcond */
-
-void waitForServerInitialization() {
-    while (!waitForInit("server_connector_connection", "ServerConnector"))
-        sleep(1);
-    serverIsReady = true;
-}
 
 int createLog() {
     auto consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
@@ -54,8 +48,6 @@ int createLog() {
     spdlog::register_logger(logger);
     spdlog::set_default_logger(logger);
     spdlog::flush_on(spdlog::level::trace);
-
-    std::thread(waitForServerInitialization);
 
     return 1;
 }
@@ -82,8 +74,12 @@ int addLogEntry(char* entry, int level) {
         break;
     }
 
-    if (serverIsReady)
-        publishMessage("api/logs", ringSink->last_formatted()[0].data());
+    if (serverIsReady) {
+        snprintf(logMessage, 1024, "log=%s", ringSink->last_formatted()[0].c_str());
+        publishMessage("api/logs", logMessage);
+    }
+    else if (strstr(entry, "[Server Connector] Initialization is finished"))
+        serverIsReady = true;
 
     return 1;
 }
