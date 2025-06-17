@@ -30,6 +30,7 @@ request {
     }
     match dst=kl.VfsSdCardFs {
         match src=kl.rump.Dhcpcd { grant () }
+        match src=kl.Ntpd { grant () }
         match src=drone_controller.AutopilotConnector { grant () }
         match src=drone_controller.CredentialManager { grant () }
         match src=drone_controller.Logger { grant () }
@@ -68,6 +69,7 @@ response {
     match src=kl.VfsSdCardFs {
         match dst=kl.rump.Dhcpcd { grant () }
         match dst=kl.drivers.SDCard { grant () }
+        match dst=kl.Ntpd { grant () }
         match dst=drone_controller.AutopilotConnector { grant () }
         match dst=drone_controller.CredentialManager { grant () }
         match dst=drone_controller.Logger { grant () }

@@ -23,6 +23,7 @@ request {
         match src=drone_controller.Logger { grant () }
     }
     match dst=kl.VfsSdCardFs {
+        match src=kl.Ntpd { grant () }
         match src=drone_controller.CredentialManager { grant () }
         match src=drone_controller.Logger { grant () }
     }
@@ -61,6 +62,7 @@ response {
         match dst=drone_controller.Logger { grant () }
     }
     match src=kl.VfsSdCardFs {
+        match dst=kl.Ntpd { grant () }
         match dst=drone_controller.CredentialManager { grant () }
         match dst=drone_controller.Logger { grant () }
     }

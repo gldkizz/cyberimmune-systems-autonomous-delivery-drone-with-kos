@@ -19,6 +19,12 @@ add_executable (KlogEntityQemu "../../klog/src/klog_entity.c")
 target_link_libraries (KlogEntityQemu ${klog_SYSTEM_AUDIT_LIB})
 add_dependencies (KlogEntityQemu klog_edl_files)
 
+find_program (NTPD_ENTITY
+              NAMES "ntpd" REQUIRED
+              NO_CMAKE_PATH
+              NO_CMAKE_ENVIRONMENT_PATH
+              NO_SYSTEM_ENVIRONMENT_PATH)
+
 set (ENTITIES
         AutopilotConnector
         CredentialManager
@@ -28,6 +34,7 @@ set (ENTITIES
         ServerConnector
         Logger
         ${precompiled_vfsVfsSdCardFs}
+        ${NTPD_ENTITY}
         KlogStorageEntity)
 set (FILES)
 
@@ -71,8 +78,16 @@ if (SIMULATION OR SERVER)
         DEPENDS_ON_ENTITY "${precompiled_vfsVfsSdCardFs};${precompiled_vfsVfsNet}"
         EXTRA_ENV ${DHCPCD_ENV}
         EXTRA_ARGS ${DHCPCD_ARGS})
+
+    file(COPY_FILE ${CMAKE_SOURCE_DIR}/resources/hdd/etc/ntp.conf.in ${CMAKE_SOURCE_DIR}/resources/hdd/etc/ntp.conf)
+    file(APPEND ${CMAKE_SOURCE_DIR}/resources/hdd/etc/ntp.conf "server ${NTP_IP} minpoll 3 maxpoll 9 iburst trust")
+
     list(APPEND ENTITIES ${precompiled_vfsVfsSdCardFs} ${precompiled_vfsVfsNet} ${rump_DHCPCD_ENTITY})
-    list(APPEND FILES ${CMAKE_SOURCE_DIR}/resources/hdd/etc/dhcpcd.conf ${CMAKE_SOURCE_DIR}/resources/hdd/var/db/dhcpcd/.gitkeep)
+    list(APPEND FILES ${CMAKE_SOURCE_DIR}/resources/hdd/etc/dhcpcd.conf
+	              ${CMAKE_SOURCE_DIR}/resources/hdd/var/db/dhcpcd/.gitkeep
+		      ${CMAKE_SOURCE_DIR}/resources/hdd/etc/ntp.conf
+		      ${CMAKE_SOURCE_DIR}/resources/hdd/etc/hosts
+		      )
 endif ()
 
 if (SERVER)
