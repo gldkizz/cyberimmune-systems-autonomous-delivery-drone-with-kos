@@ -12,6 +12,7 @@
  */
 
 #include "../include/periphery_controller.h"
+#include "../../shared/include/ipc_messages_server_connector.h"
 
 #include <coresrv/hal/hal_api.h>
 #include <rtl/retcode_hr.h>

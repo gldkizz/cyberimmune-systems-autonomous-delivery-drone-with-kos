@@ -12,6 +12,7 @@
  */
 
 #include "../include/periphery_controller.h"
+#include "../../shared/include/ipc_messages_server_connector.h"
 
 #include <kos_net.h>
 
