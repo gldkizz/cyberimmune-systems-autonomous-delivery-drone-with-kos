@@ -48,6 +48,7 @@ class MQTTTopic:
     FMISSION_MS = 'api/mission/{id}'
     NMISSION_REQUEST = 'api/nmission/request/{id}'
     ARM_REQUEST = 'api/arm/request/{id}'
+    EVENTS = 'api/events/{id}'
     
     # sendable
     PING = 'ping/{id}'
