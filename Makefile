@@ -11,7 +11,7 @@ docs:
 
 docker: docker-image
 
-docker-image: docker-image-simulator docker-image-orvd docker-image-mqtt-server
+docker-image: docker-image-simulator docker-image-orvd docker-image-mqtt-server docker-image-ntp-server
 
 docker-image-simulator:
 	docker build ./ -t simulator --build-arg SDK_FOLDER_NAME=$(SDK_FOLDER_NAME) --build-arg SDK_PKG_NAME=$(SDK_PKG_NAME)
@@ -21,6 +21,9 @@ docker-image-orvd:
 
 docker-image-mqtt-server:
 	docker build -f mqtt-server.Dockerfile -t mqtt-server ./
+
+docker-image-ntp-server:
+	docker build -f ntp-server.Dockerfile -t ntp-server ./
 
 clean-docker-compose:
 	docker-compose -f docker-compose-offline.yml down
@@ -97,6 +100,9 @@ shell-orvd-real:
 
 start-mqtt-server:
 	docker run --name mqtt-server -p 1883:1883 -p 8883:8883 --rm mqtt-server
+
+start-ntp-server:
+	docker run --name ntp-server -p 123:123/udp --rm ntpd-server
 
 start-orvd:
 	[ -n "$$mqttserver" ] || read -p "Please enter MQTT server IP: " mqttserver; \

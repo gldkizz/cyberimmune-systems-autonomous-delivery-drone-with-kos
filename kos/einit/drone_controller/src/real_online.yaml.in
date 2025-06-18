@@ -75,4 +75,16 @@ entities:
     id: server_connector_connection
 @INIT_Logger_ENTITY_CONNECTIONS@
 
+- name: kl.Ntpd
+  path: ntpd
+  env:
+    VFS_FILESYSTEM_BACKEND: client:kl.VfsSdCardFs
+    VFS_NETWORK_BACKEND: client:kl.VfsNet
+  connections:
+  - target: kl.VfsNet
+    id: kl.VfsNet
+  - target: kl.VfsSdCardFs
+    id: kl.VfsSdCardFs
+@INIT_ntpd_ENTITY_CONNECTIONS+@
+
 @INIT_EXTERNAL_ENTITIES@
