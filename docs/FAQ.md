@@ -334,7 +334,7 @@ RUN chown -R 1000:1000 /home/user
 CMD ["bash"]
 ```
 
-В Makefile добавиться правило:
+В Makefile добавится правило:
 
 ```Makefile
 docker-image-simulator-base:
