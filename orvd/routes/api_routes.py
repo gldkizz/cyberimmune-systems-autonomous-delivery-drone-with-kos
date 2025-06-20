@@ -28,7 +28,7 @@ from handlers.admin_handlers import (
 )
 from handlers.general_handlers import (
     key_ms_exchange_handler, fmission_ms_handler, get_logs_handler,
-    get_telemetry_csv_handler
+    get_telemetry_csv_handler, get_events_handler
 )
 from handlers.mqtt_handlers import mqtt_publish_forbidden_zones
 from .blueprint import bp
@@ -914,6 +914,37 @@ def get_logs():
     id = cast_wrapper(request.args.get('id'), str)
     if id:
         return regular_request(handler_func=get_logs_handler, id=id)
+    else:
+        return bad_request('Wrong id')
+
+
+@bp.route(GeneralRoute.GET_EVENTS)
+def get_events():
+    """
+    Получает события для указанного БПЛА.
+    ---
+    tags:
+      - logs
+    parameters:
+      - name: id
+        in: query
+        type: string
+        required: true
+        description: Идентификатор БПЛА.
+    responses:
+      200:
+        description: События для указанного БПЛА или $-1, если события не найдены.
+        schema:
+          type: string
+      400:
+        description: Неверный идентификатор.
+        schema:
+          type: string
+          example: "Wrong id"
+    """
+    id = cast_wrapper(request.args.get('id'), str)
+    if id:
+        return regular_request(handler_func=get_events_handler, id=id)
     else:
         return bad_request('Wrong id')
 
