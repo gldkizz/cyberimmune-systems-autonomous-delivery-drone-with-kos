@@ -355,7 +355,7 @@ def save_logs_handler(id: str, log: str, **kwargs):
 
 def save_events_handler(id: str, log_message: str, **kwargs):
     """
-    Обрабатывает запрос на сохранение событий БПЛА в БД.
+    Обрабатывает запрос на сохранение событий БПЛА в БД и логах.
 
     Args:
         id (str): Идентификатор БПЛА.
@@ -366,6 +366,7 @@ def save_events_handler(id: str, log_message: str, **kwargs):
     """
     try:
         save_event(uav_id=id, log_message=log_message)
+        save_logs_handler(id=id, log=log_message)
     except Exception as e:
         print(e)
     return OK
