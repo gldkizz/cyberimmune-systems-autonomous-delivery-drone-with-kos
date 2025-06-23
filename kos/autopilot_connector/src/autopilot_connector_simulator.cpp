@@ -55,6 +55,17 @@ int initConnection() {
     return 1;
 }
 
+int getAutopilotBytes(uint32_t byteNum, uint8_t* bytes) {
+    ssize_t readBytes = read(autopilotSocket, bytes, byteNum);
+    if (readBytes != byteNum) {
+        char logBuffer[256] = {0};
+        snprintf(logBuffer, 256, "Failed to read %ld bytes from autopilot: %ld bytes were received", byteNum, readBytes);
+        logEntry(logBuffer, ENTITY_NAME, LogLevel::LOG_WARNING);
+        return 0;
+    }
+    return 1;
+}
+
 int getAutopilotCommand(uint8_t& command) {
     uint8_t message[sizeof(AutopilotCommandMessage)];
     for (int i = 0; i < AUTOPILOT_COMMAND_MESSAGE_HEAD_SIZE; i++) {

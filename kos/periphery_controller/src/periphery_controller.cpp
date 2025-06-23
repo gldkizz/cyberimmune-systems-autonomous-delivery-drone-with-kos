@@ -12,6 +12,7 @@
  */
 
 #include "../include/periphery_controller.h"
+#include "../../shared/include/ipc_messages_server_connector.h"
 
 #include <unistd.h>
 #include <string.h>
@@ -49,5 +50,7 @@ int startBuzzer() {
     if (buzzerThread.joinable())
         buzzerThread.join();
     buzzerThread = std::thread(buzz);
+    if (!publishMessage("api/events", "type=buzzer&event=Buzzer is enabled"))
+        logEntry("Failed to publish event message", ENTITY_NAME, LogLevel::LOG_WARNING);
     return 1;
 }

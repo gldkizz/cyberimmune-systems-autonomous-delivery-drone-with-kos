@@ -8,6 +8,7 @@
 #include "../include/initialization_interface.h"
 
 #include <stddef.h>
+#include <unistd.h>
 
 #define NK_USE_UNQUALIFIED_NAMES
 #include <drone_controller/AutopilotConnectorInterface.idl.h>
@@ -23,7 +24,13 @@ int waitForArmRequest() {
     AutopilotConnectorInterface_WaitForArmRequest_req req;
     AutopilotConnectorInterface_WaitForArmRequest_res res;
 
-    return ((AutopilotConnectorInterface_WaitForArmRequest(&proxy.base, &req, NULL, &res, NULL) == rcOk) && res.success);
+    while (true) {
+        if ((AutopilotConnectorInterface_WaitForArmRequest(&proxy.base, &req, NULL, &res, NULL) == rcOk) && res.success)
+            return 1;
+        sleep(1);
+    }
+
+    return 0;
 }
 
 int permitArm() {

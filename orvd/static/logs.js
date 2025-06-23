@@ -64,18 +64,63 @@ async function submitSpeed() {
 }
 
 async function submitEvents() {
-     let id = document.getElementById('id').value;
+    let id = document.getElementById('id').value;
     if (id != null && id !== '') {
-      toggleContainers(false, false, true);
-      document.getElementById('logs-container').innerHTML = "";
-      let chartContainer = document.getElementById('speed-chart').getContext('2d');
-      chartContainer.clearRect(0, 0, chartContainer.canvas.width, chartContainer.canvas.height);
-      if (chartInstance) {
-          chartInstance.destroy();
-          chartInstance = null;
-      }
-    }
-    else{
+        toggleContainers(false, false, true);
+        document.getElementById('logs-container').innerHTML = "";
+        let chartContainer = document.getElementById('speed-chart').getContext('2d');
+        chartContainer.clearRect(0, 0, chartContainer.canvas.width, chartContainer.canvas.height);
+        if (chartInstance) {
+            chartInstance.destroy();
+            chartInstance = null;
+        }
+
+        let events_resp = await fetch('logs/get_events?id=' + id);
+        let events = await events_resp.json();
+        let events_container = document.getElementById('events-container');
+        events_container.innerHTML = "";
+
+        if (events.length > 0) {
+            let table = document.createElement('table');
+            table.className = 'log-table'; // Add a class for styling
+            let thead = document.createElement('thead');
+            let tbody = document.createElement('tbody');
+            let headRow = document.createElement('tr');
+            
+            let headers = ['Timestamp', 'Type', 'Event'];
+            headers.forEach(headerText => {
+                let th = document.createElement('th');
+                th.textContent = headerText;
+                headRow.appendChild(th);
+            });
+
+            thead.appendChild(headRow);
+            table.appendChild(thead);
+
+            events.forEach(event => {
+                let row = document.createElement('tr');
+                
+                let timestampCell = document.createElement('td');
+                timestampCell.textContent = new Date(event.timestamp).toLocaleString();
+                row.appendChild(timestampCell);
+
+                let typeCell = document.createElement('td');
+                typeCell.textContent = event.type;
+                row.appendChild(typeCell);
+
+                let eventCell = document.createElement('td');
+                eventCell.textContent = event.event;
+                row.appendChild(eventCell);
+
+                tbody.appendChild(row);
+            });
+
+            table.appendChild(tbody);
+            events_container.appendChild(table);
+        } else {
+            events_container.textContent = 'No events found.';
+        }
+    } else {
         alert('Введите серийный номер.');
     }
 }

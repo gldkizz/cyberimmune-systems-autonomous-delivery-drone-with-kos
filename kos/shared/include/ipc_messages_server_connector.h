@@ -45,7 +45,7 @@ int sendRequest(char* query, char* response, uint32_t responseSize);
  * \param[in] publication Сообщение, которое будет опубликовано.
  * \return Возвращает 1, если сообщениями было успешно опубликовано, иначе -- 0.
  */
-int publishMessage(char* topic, char* publication);
+int publishMessage(char* topic, const char* publication);
 /**
  * \~English Gets stored message, received MQTT-protocol.
  * \param[in] topic Name of topic to receive message from.

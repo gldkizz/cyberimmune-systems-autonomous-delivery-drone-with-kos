@@ -7,7 +7,7 @@ from db.dao import (
     get_entities_by_field, get_entities_by_field_with_order, save_public_key,
     get_key
 )
-from db.models import Mission, MissionStep, MissionSenderPublicKeys, Uav, UavTelemetry
+from db.models import Mission, MissionStep, MissionSenderPublicKeys, Uav, UavTelemetry, Event
 from utils import (
     generate_keys, read_mission, encode_mission, create_csv_from_telemetry
 )
@@ -115,3 +115,33 @@ def get_telemetry_csv_handler(id: str):
 
     csv_data = create_csv_from_telemetry(uav_telemetry_entities)
     return csv_data
+
+
+def get_events_handler(id: str):
+    """
+    Обрабатывает запрос на получение событий БПЛА.
+
+    Args:
+        id (str): Идентификатор БПЛА.
+
+    Returns:
+        str: Строка с событиями в формате JSON или NOT_FOUND.
+    """
+    events = get_entities_by_field_with_order(Event, Event.uav_id, id, Event.timestamp.asc())
+    if not events:
+        return NOT_FOUND
+
+    events_list = []
+    for event in events:
+        try:
+            params = dict(p.split('=', 1) for p in event.log_message.split('&'))
+            events_list.append({
+                'type': params.get('type'),
+                'event': params.get('event'),
+                'timestamp': event.timestamp.isoformat()
+            })
+        except ValueError:
+            continue
+            
+    import json
+    return json.dumps(events_list)

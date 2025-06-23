@@ -13,7 +13,7 @@ nk_err_t WaitForArmRequestImpl(struct AutopilotConnectorInterface *self,
                     const AutopilotConnectorInterface_WaitForArmRequest_req *req, const struct nk_arena *reqArena,
                     AutopilotConnectorInterface_WaitForArmRequest_res *res, struct nk_arena *resArena) {
     uint8_t command;
-    res->success = (getAutopilotCommand(command) && (command == AutopilotCommand::ArmRequest));
+    res->success = isArmRequested();
 
     return NK_EOK;
 }

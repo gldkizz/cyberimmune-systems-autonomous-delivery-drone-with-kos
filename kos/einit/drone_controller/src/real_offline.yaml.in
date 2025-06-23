@@ -6,6 +6,8 @@ entities:
     id: periphery_controller_connection
   - target: drone_controller.Logger
     id: logger_connection
+  - target: drone_controller.ServerConnector
+    id: server_connector_connection
 @INIT_AutopilotConnector_ENTITY_CONNECTIONS@
 
 - name: drone_controller.CredentialManager
@@ -44,6 +46,8 @@ entities:
     id: server_connector_connection
   - target: drone_controller.Logger
     id: logger_connection
+  - target: drone_controller.ServerConnector
+    id: server_connector_connection
 @INIT_NavigationSystem_ENTITY_CONNECTIONS@
 
 - name: drone_controller.PeripheryController

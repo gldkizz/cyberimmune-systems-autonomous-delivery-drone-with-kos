@@ -11,7 +11,7 @@ from constants import (
 from db.dao import (
     add_and_commit, add_changes, commit_changes, delete_entity, get_entity_by_key,
     get_entities_by_field, get_entities_by_field_with_order, save_public_key,
-    get_key, flush
+    get_key, flush, save_event
 )
 from db.models import UavTelemetry, MissionStep, Mission, UavPublicKeys, Uav
 from utils import (
@@ -193,7 +193,7 @@ def telemetry_handler(id: str, lat: float, lon: float, alt: float,
         dop = cast_wrapper(dop, float)
         sats = cast_wrapper(sats, int)
         speed = cast_wrapper(speed, float)
-        record_time = datetime.datetime.utcnow()
+        record_time = datetime.datetime.now(datetime.timezone.utc)
         uav_telemetry_entity = get_entity_by_key(UavTelemetry, (uav_entity.id, record_time))
         if not uav_telemetry_entity:
             uav_telemetry_entity = UavTelemetry(uav_id=uav_entity.id, lat=lat, lon=lon, alt=alt,
@@ -349,6 +349,24 @@ def save_logs_handler(id: str, log: str, **kwargs):
             os.makedirs(LOGS_PATH)
         with open(f'{LOGS_PATH}/{id}.txt', 'a') as f:
             f.write(f'\n{log}')
+    except Exception as e:
+        print(e)
+    return OK
+
+def save_events_handler(id: str, log_message: str, **kwargs):
+    """
+    Обрабатывает запрос на сохранение событий БПЛА в БД и логах.
+
+    Args:
+        id (str): Идентификатор БПЛА.
+        log_string (str): Строка с логом для сохранения.
+
+    Returns:
+        str: OK в случае успешного сохранения.
+    """
+    try:
+        save_event(uav_id=id, log_message=log_message)
+        save_logs_handler(id=id, log=log_message)
     except Exception as e:
         print(e)
     return OK

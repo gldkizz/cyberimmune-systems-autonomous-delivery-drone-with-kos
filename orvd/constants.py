@@ -48,6 +48,7 @@ class MQTTTopic:
     FMISSION_MS = 'api/mission/{id}'
     NMISSION_REQUEST = 'api/nmission/request/{id}'
     ARM_REQUEST = 'api/arm/request/{id}'
+    EVENTS = 'api/events/{id}'
     
     # sendable
     PING = 'ping/{id}'
@@ -111,6 +112,7 @@ class GeneralRoute:
     TILES_INDEX = '/tiles/index'
     LOGS_PAGE = '/logs'
     GET_LOGS = '/logs/get_logs'
+    GET_EVENTS = '/logs/get_events'
     GET_TELEMETRY_CSV = '/logs/get_telemetry_csv'
     MISSION_SENDER = '/mission_sender'
     FMISSION_MS = '/mission_sender/fmission_ms'

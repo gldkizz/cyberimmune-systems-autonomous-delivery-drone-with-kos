@@ -5,7 +5,8 @@ from extensions import mqtt_client as mqtt
 from utils import verify, sign, signed_request
 from handlers.general_handlers import fmission_ms_handler
 from handlers.api_handlers import (
-    telemetry_handler, arm_handler, save_logs_handler, revise_mission_handler
+    telemetry_handler, arm_handler, save_logs_handler, revise_mission_handler,
+    save_events_handler
 )
 
 def extract_id_from_kwargs(kwargs):
@@ -67,6 +68,17 @@ def save_logs(client, userdata, msg, **kwargs):
     payload = {k: v[0] for k, v in query_params.items()}
     payload['id'] = extract_id_from_kwargs(kwargs)
     save_logs_handler(**payload)
+    
+@mqtt.topic(MQTTTopic.EVENTS)
+def save_events(client, userdata, msg, **kwargs):
+    """
+    Сохраняет событие для указанного БПЛА.
+    """
+    payload = {
+        'log_message': msg.payload.decode(),
+        'id': extract_id_from_kwargs(kwargs)
+    }
+    save_events_handler(**payload)
 
 @mqtt.topic(MQTTTopic.NMISSION_REQUEST)
 def revise_mission(client, userdata, msg, **kwargs):

@@ -4,7 +4,7 @@ from extensions import db
 from hashlib import sha256
 from constants import KeyGroup
 from context import context
-from .models import User, UavTelemetry, MissionStep, Mission, MissionSenderPublicKeys, UavPublicKeys, Uav
+from .models import User, UavTelemetry, MissionStep, Mission, MissionSenderPublicKeys, UavPublicKeys, Uav, Event
 
 
 def add_and_commit(entity: db.Model):
@@ -154,7 +154,7 @@ def clean_db():
         None
     """
     try:
-        for model in [User, UavTelemetry, MissionStep, Mission, MissionSenderPublicKeys, UavPublicKeys, Uav]:
+        for model in [User, UavTelemetry, MissionStep, Mission, MissionSenderPublicKeys, UavPublicKeys, Uav, Event]:
             db.session.query(model).delete()
         db.session.commit()
     except Exception:
@@ -226,4 +226,29 @@ def save_public_key(n: str, e: str, key_group: str) -> None:
         entity = MissionSenderPublicKeys(uav_id=id, n=n, e=e)
     else:
         print('Wrong group in utils.save_public_key')
-    add_and_commit(entity)    
+    add_and_commit(entity)
+
+
+def save_event(uav_id: str, log_message: str) -> None:
+    """
+    Сохраняет событие в базу данных.
+
+    Args:
+        uav_id (str): Идентификатор БПЛА.
+        log_message (str): Сообщение лога.
+    """
+    event = Event(uav_id=uav_id, log_message=log_message)
+    add_and_commit(event)
+
+
+def get_events_by_uav_id(uav_id: str) -> list:
+    """
+    Получает все события для указанного БПЛА.
+
+    Args:
+        uav_id (str): Идентификатор БПЛА.
+
+    Returns:
+        list: Список событий.
+    """
+    return get_entities_by_field(Event, Event.uav_id, uav_id, Event.timestamp).all()

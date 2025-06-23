@@ -91,6 +91,22 @@ int initConnection() {
     return 1;
 }
 
+int getAutopilotBytes(uint32_t byteNum, uint8_t* bytes) {
+    rtl_size_t readBytes;
+    Retcode rc = UartRead(autopilotUartHandler, bytes, byteNum, NULL, &readBytes);
+    if (rc != rcOk) {
+        snprintf(logBuffer, 256, "Failed to read from UART %s (" RETCODE_HR_FMT ")", autopilotUart, RETCODE_HR_PARAMS(rc));
+        logEntry(logBuffer, ENTITY_NAME, LogLevel::LOG_WARNING);
+        return 0;
+    }
+    else if (readBytes != byteNum) {
+        snprintf(logBuffer, 256, "Failed to read %ld bytes from autopilot: %ld bytes were received", byteNum, readBytes);
+        logEntry(logBuffer, ENTITY_NAME, LogLevel::LOG_WARNING);
+        return 0;
+    }
+    return 1;
+}
+
 int getAutopilotCommand(uint8_t& command) {
     uint8_t message[sizeof(AutopilotCommandMessage)];
     char logBuffer[256] = {0};
