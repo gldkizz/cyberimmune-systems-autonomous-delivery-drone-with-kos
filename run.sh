@@ -4,7 +4,7 @@ export SDK_PKG_NAME=KasperskyOS-Community-Edition-RaspberryPi4b-1.3.0.166_ru.deb
 
 #export SDK_FOLDER_NAME=KasperskyOS-Community-Edition-RaspberryPi4b-wifi
 #export SDK_PKG_NAME=KasperskyOS-Community-Edition-RaspberryPi4b-1.3.0_amd64.deb
-#
+
 rm -f mavproxy/MAVProxy/mav.parm
 rm -f mavproxy/MAVProxy/mav.tlog
 rm -f mavproxy/MAVProxy/mav.tlog.raw

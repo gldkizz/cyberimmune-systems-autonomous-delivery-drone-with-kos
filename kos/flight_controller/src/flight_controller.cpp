@@ -124,7 +124,7 @@ int parseCommands(char* str) {
     for (uint32_t i = 0; ; i++)
         if (str[i] == '#')
             break;
-        else if (str[i] == 'H' || str[i] == 'T' || str[i] == 'W' || str[i] == 'L' || str[i] == 'S' || str[i] == 'D')
+        else if (str[i] == 'H' || str[i] == 'T' || str[i] == 'W' || str[i] == 'L' || str[i] == 'S' || str[i] == 'D' || str[i] == 'I')
             commandNum++;
         else if (str[i] == '\0') {
             logEntry("Cannot parse commands: no correct ending", ENTITY_NAME, LogLevel::LOG_WARNING);
@@ -209,9 +209,19 @@ int parseCommands(char* str) {
             commands[i].content.delay = CommandDelay(alt);
             break;
         }
+        case 'I': {
+            if (!parseInt(stringPtr, lat, 7) || !parseInt(stringPtr, lng, 7) || !parseInt(stringPtr, alt, 2)) {
+                logEntry("Failed to parse values for 'interest' command", ENTITY_NAME, LogLevel::LOG_WARNING);
+                free(commands);
+                return 0;
+            }
+            commands[i].type = CommandType::INTEREST;
+            commands[i].content.waypoint = CommandWaypoint(lat, lng, alt);
+            break;
+        }
         default: {
             char logBuffer[256] = {0};
-            snprintf(logBuffer, 256, "Cannot parse an unknown command %c", str[ptr]);
+            snprintf(logBuffer, 256, "Cannot parse an unknown command '%c'", str[ptr]);
             logEntry(logBuffer, ENTITY_NAME, LogLevel::LOG_WARNING);
             free(commands);
             return 0;
@@ -484,6 +494,11 @@ void printMission() {
             snprintf(logBuffer, 256, "Delay: %d", commands[i].content.delay.delay);
             logEntry(logBuffer, ENTITY_NAME, LogLevel::LOG_INFO);
             break;
+        case CommandType::INTEREST:
+            snprintf(logBuffer, 256, "Point of interest: %d, %d, %d", commands[i].content.waypoint.latitude,
+                commands[i].content.waypoint.longitude, commands[i].content.waypoint.altitude);
+            logEntry(logBuffer, ENTITY_NAME, LogLevel::LOG_INFO);
+            break;
         default:
             logEntry("An unknown command", ENTITY_NAME, LogLevel::LOG_WARNING);
             break;
@@ -530,6 +545,12 @@ int missionToString(MissionCommand* commands, uint8_t num, char* string, uint32_
         case CommandType::DELAY:
             commandLen = snprintf(command, 256, "D%d", commands[i].content.delay.delay);
             break;
+        case CommandType::INTEREST:
+            coordToString(latStr, 13, commands[i].content.waypoint.latitude, 7);
+            coordToString(lngStr, 13, commands[i].content.waypoint.longitude, 7);
+            coordToString(altStr, 10, commands[i].content.waypoint.altitude, 2);
+            commandLen = snprintf(command, 256, "I%s_%s_%s", latStr, lngStr, altStr);
+            break;
         default:
             snprintf(command, 256, "Unknown command type '%d'", commands[i].type);
             logEntry(command, ENTITY_NAME, LogLevel::LOG_WARNING);
@@ -567,6 +588,9 @@ int missionToBytes(MissionCommand* commands, uint8_t num, uint8_t* bytes) {
         case CommandType::DELAY:
             command = 'D';
             break;
+        case CommandType::INTEREST:
+            command = 'I';
+            break;
         default: {
             char logBuffer[128] = {0};
             snprintf(logBuffer, 128, "Unknown command type '%d'", commands[i].type);
@@ -581,6 +605,7 @@ int missionToBytes(MissionCommand* commands, uint8_t num, uint8_t* bytes) {
         case CommandType::HOME:
         case CommandType::WAYPOINT:
         case CommandType::LAND:
+        case CommandType::INTEREST:
             memcpy(bytes + shift, &(commands[i].content.waypoint.latitude), sizeof(int32_t));
             shift += sizeof(int32_t);
             memcpy(bytes + shift, &(commands[i].content.waypoint.longitude), sizeof(int32_t));
@@ -621,6 +646,7 @@ uint32_t getMissionBytesSize(MissionCommand* commands, uint8_t num) {
         case CommandType::HOME:
         case CommandType::WAYPOINT:
         case CommandType::LAND:
+        case CommandType::INTEREST:
             byteSize += 3 * sizeof(int32_t);
             break;
         case CommandType::TAKEOFF:
