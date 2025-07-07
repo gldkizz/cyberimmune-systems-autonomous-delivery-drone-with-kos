@@ -121,6 +121,13 @@ let servo_marker_style = new ol.style.Style({
   })
 })
 
+let roi_marker_style = new ol.style.Style({
+  image: new ol.style.Icon({
+    anchor: [0.5, 1],
+    src: 'static/resources/roi_marker.png'
+  })
+})
+
 let delay_marker_style = new ol.style.Style({
   image: new ol.style.Icon({
     anchor: [0.5, 1],
@@ -417,6 +424,9 @@ function add_marker(lat, lon, alt, marker_type) {
     } else if (marker_type === 'delay') {
       marker.setStyle(delay_marker_style);
       marker.set('description', 'Задержка\nВысота: ' + alt);
+    } else if (marker_type === 'roi') {
+      marker.setStyle(roi_marker_style);
+      marker.set('description', 'ROI\nВысота: ' + alt);
     } else {
       marker.setStyle(regular_marker_style);
       marker.set('description', 'Высота: ' + alt);
@@ -636,6 +646,12 @@ async function get_mission(id) {
           add_marker(lat, lon, alt, 'regular');
         }
         mission_path.push([lon, lat]);
+      }
+      else if (mission_list[idx][0] == 'I') {
+        var lat = parseFloat(mission_list[idx][1]);
+        var lon = parseFloat(mission_list[idx][2]);
+        var alt = mission_list[idx][3];
+        add_marker(lat, lon, alt, 'roi');
       }
       else if (mission_list[idx][0] == 'L'){
         var lat = parseFloat(mission_list[idx][1]);

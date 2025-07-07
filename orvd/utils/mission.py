@@ -75,6 +75,8 @@ def read_mission(file_str: str) -> tuple[list | None, str]:
                     cmd = delay_handler(delay=ln_param1)
                 else:
                     return None, MissionVerificationStatus.WRONG_DELAY
+            elif ln_command == 201:
+                cmd = roi_handler(lat=ln_param5, lon=ln_param6, alt=ln_param7)
             else:
                 return None, MissionVerificationStatus.UNKNOWN_COMMAND
             
@@ -173,6 +175,24 @@ def land_handler(lat: float, lon: float, alt: float, home: list = None) -> list:
     ret_alt = round(ret_alt, 2)
     
     return ['L', str(ret_lat), str(ret_lon), str(ret_alt)]
+
+
+def roi_handler(lat: float, lon: float, alt: float) -> list:
+    """
+    Обрабатывает команду DO_SET_ROI.
+
+    Args:
+        lat (float): Широта.
+        lon (float): Долгота.
+        alt (float): Высота.
+
+    Returns:
+        list: Команда DO_SET_ROI.
+    """
+    lat = round(lat, 7)
+    lon = round(lon, 7)
+    alt = round(alt, 2)
+    return ['I', str(lat), str(lon), str(alt)]
 
 
 def delay_handler(delay: int) -> list:
