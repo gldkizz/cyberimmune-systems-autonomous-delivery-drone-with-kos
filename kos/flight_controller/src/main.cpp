@@ -186,7 +186,7 @@ int main(void) {
     char logBuffer[256] = {0};
     char signBuffer[257] = {0};
     char publicationBuffer[1024] = {0};
-    char subscriptionBuffer[1024] = {0};
+    char subscriptionBuffer[4096] = {0};
     //Before do anything, we need to ensure, that other modules are ready to work
     while (!waitForInit("logger_connection", "Logger")) {
         snprintf(logBuffer, 256, "Failed to receive initialization notification from Logger. Trying again in %ds", RETRY_DELAY_SEC);
@@ -258,7 +258,7 @@ int main(void) {
     logEntry("Successfully authenticated on the server", ENTITY_NAME, LogLevel::LOG_INFO);
 
     //Constantly ask server, if mission for the drone is available. Parse it and ensure, that mission is correct
-    while (!receiveSubscription("api/fmission_kos/", subscriptionBuffer, 1024) || !strcmp(subscriptionBuffer, ""))
+    while (!receiveSubscription("api/fmission_kos/", subscriptionBuffer, 4096) || !strcmp(subscriptionBuffer, ""))
         sleep(1);
 
     authenticity = 0;
@@ -299,7 +299,7 @@ int main(void) {
             sleep(RETRY_DELAY_SEC);
         }
 
-        while (!receiveSubscription("api/arm/response/", subscriptionBuffer, 1024) || !strcmp(subscriptionBuffer, ""))
+        while (!receiveSubscription("api/arm/response/", subscriptionBuffer, 4096) || !strcmp(subscriptionBuffer, ""))
             sleep(1);
 
         authenticity = 0;
