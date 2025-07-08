@@ -47,9 +47,14 @@ enum CommandType {
     SET_SERVO,
     /**
      * \~English Command to wait for specified amount of seconds before next command execution.
-     * \~Russian Ожидание указанног очисла секунд перед выполнением следующей команды.
+     * \~Russian Ожидание указанного числа секунд перед выполнением следующей команды.
      */
-    DELAY
+    DELAY,
+    /**
+     * \~English Command to specify interest point with an RFID tag.
+     * \~Russian Точка интереса, в которой находится RFID-метка.
+     */
+    INTEREST
 };
 
 /**
@@ -75,8 +80,8 @@ struct CommandTakeoff {
 };
 
 /**
- * \~English Structure to store \ref WAYPOINT command arguments (as well as \ref HOME and \ref LAND).
- * \~Russian Структура для хранения аргументов команды \ref WAYPOINT (а также \ref HOME и \ref LAND).
+ * \~English Structure to store \ref WAYPOINT command arguments (as well as \ref HOME, \ref LAND and \ref INTEREST).
+ * \~Russian Структура для хранения аргументов команды \ref WAYPOINT (а также \ref HOME, \ref LAND и \ref INTEREST).
  */
 struct CommandWaypoint {
     /**
@@ -91,9 +96,9 @@ struct CommandWaypoint {
     int32_t longitude;
     /**
      * \~English Altitude in cm.
-     * \note Relative for \ref WAYPOINT command, absolute -- for \ref HOME and \ref LAND.
+     * \note Relative for \ref WAYPOINT and \ref INTEREST commands, absolute -- for \ref HOME and \ref LAND.
      * \~Russian Высота в см.
-     * \note Относительная для команды \ref WAYPOINT, абсолютная -- для \ref HOME и \ref LAND.
+     * \note Относительная для команд \ref WAYPOINT и \ref INTEREST, абсолютная -- для \ref HOME и \ref LAND.
      */
     int32_t altitude;
 
@@ -179,8 +184,8 @@ union CommandContent {
      */
     CommandTakeoff takeoff;
     /**
-     * \~English \ref HOME, \ref WAYPOINT and \ref LAND command arguments. See \ref CommandWaypoint.
-     * \~Russian Аргументы команд \ref HOME, \ref WAYPOINT и \ref LAND. См. \ref CommandWaypoint.
+     * \~English \ref HOME, \ref WAYPOINT, \ref INTEREST and \ref LAND command arguments. See \ref CommandWaypoint.
+     * \~Russian Аргументы команд \ref HOME, \ref WAYPOINT, \ref INTEREST и \ref LAND. См. \ref CommandWaypoint.
      */
     CommandWaypoint waypoint;
     /**
