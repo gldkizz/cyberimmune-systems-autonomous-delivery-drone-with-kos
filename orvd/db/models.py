@@ -1,5 +1,5 @@
 import datetime
-from orvd_server import db
+from extensions import db
 
 class User(db.Model):
     """
@@ -37,7 +37,7 @@ class Uav(db.Model):
     state = db.Column(db.String(64))
     kill_switch_state = db.Column(db.Boolean, default=False)
     delay = db.Column(db.Integer, default=5)
-    created_date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    created_date = db.Column(db.DateTime(timezone=True), default=lambda: datetime.datetime.now(datetime.timezone.utc))
     
     def __repr__(self):
         return '<UAV {}>'.format(self.id)
@@ -135,7 +135,7 @@ class UavTelemetry(db.Model):
     """
     __tablename__ = 'uav_telemetry'
     uav_id = db.Column(db.String(64), db.ForeignKey('uav.id'))
-    record_time = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    record_time = db.Column(db.DateTime(timezone=True), default=lambda: datetime.datetime.now(datetime.timezone.utc))
     lat = db.Column(db.Float(precision=8))
     lon = db.Column(db.Float(precision=8))
     alt = db.Column(db.Float(precision=8))
@@ -152,3 +152,22 @@ class UavTelemetry(db.Model):
     
     def __repr__(self):
         return f'UAV id={self.uav_id}, lat={self.lat}, lon={self.lon}, alt={self.alt}, azimuth={self.azimuth}'
+
+class Event(db.Model):
+    """
+    Модель для хранения логов.
+    
+    Attributes:
+        id: Уникальный идентификатор (первичный ключ)
+        uav_id: Идентификатор БПЛА (внешний ключ)
+        timestamp: Временная метка события
+        log_message: Сообщение лога
+    """
+    __tablename__ = 'events'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    uav_id = db.Column(db.String(64), db.ForeignKey('uav.id'), nullable=False)
+    timestamp = db.Column(db.DateTime(timezone=True), default=lambda: datetime.datetime.now(datetime.timezone.utc), nullable=False)
+    log_message = db.Column(db.String(1024), nullable=False)
+
+    def __repr__(self):
+        return f'&lt;Event {self.id} for UAV {self.uav_id} at {self.timestamp}&gt;'

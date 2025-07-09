@@ -12,6 +12,7 @@
  */
 
 #include "../include/periphery_controller.h"
+#include "../../shared/include/ipc_messages_server_connector.h"
 
 #include <kos_net.h>
 
@@ -150,6 +151,8 @@ int setKillSwitch(bool enable) {
     SimPeripheryMessage message = SimPeripheryMessage(enable ? SimPeripheryCommand::MotorPermit : SimPeripheryCommand::MotorForbid);
     write(peripherySocket, &message, sizeof(SimPeripheryMessage));
     killSwitchEnabled = enable;
+    if (!publishMessage("api/events", enable ? "type=kill_switch&event=Kill-switch is enabled" : "type=kill_switch&event=Kill-switch is disabled"))
+        logEntry("Failed to publish event message", ENTITY_NAME, LogLevel::LOG_WARNING);
 
     return 1;
 }
@@ -157,6 +160,8 @@ int setKillSwitch(bool enable) {
 int setCargoLock(bool enable) {
     SimPeripheryMessage message = SimPeripheryMessage(enable ? SimPeripheryCommand::CargoPermit : SimPeripheryCommand::CargoForbid);
     write(peripherySocket, &message, sizeof(SimPeripheryMessage));
+    if (!publishMessage("api/events", enable ? "type=cargo_lock&event=Cargo lock is enabled" : "type=kill_switch&event=Cargo lock is disabled"))
+        logEntry("Failed to publish event message", ENTITY_NAME, LogLevel::LOG_WARNING);
 
     return 1;
 }

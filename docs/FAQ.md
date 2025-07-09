@@ -81,8 +81,8 @@ COPY ./KasperskyOS-Community-Edition-RaspberryPi4b-1.3.0.166_ru.deb /tmp
 
 RUN apt install /tmp/KasperskyOS-Community-Edition-RaspberryPi4b-1.3.0.166_ru.deb -y
 RUN rm /tmp/KasperskyOS-Community-Edition-RaspberryPi4b-1.3.0.166_ru.deb \
-    && echo '/opt/KasperskyOS-Community-Edition-RaspberryPi4b-1.3.0.166/toolchain/lib' >> /etc/ld.so.conf.d/KasperskyOS.conf \
-    && echo '/opt/KasperskyOS-Community-Edition-RaspberryPi4b-1.3.0.166/toolchain/x86_64-pc-linux-gnu/aarch64-kos/lib/' >> /etc/ld.so.conf.d/KasperskyOS.conf \
+    && echo '/opt/KasperskyOS-Community-Edition-1.3.0.166/toolchain/lib' >> /etc/ld.so.conf.d/KasperskyOS.conf \
+    && echo '/opt/KasperskyOS-Community-Edition-1.3.0.166/toolchain/x86_64-pc-linux-gnu/aarch64-kos/lib/' >> /etc/ld.so.conf.d/KasperskyOS.conf \
     && ldconfig
 
 RUN su -c 'pip3 install PyYAML mavproxy pymavlink --user --upgrade' user
@@ -306,12 +306,12 @@ RUN apt-get update && \
         && adduser --disabled-password --gecos "" user \
         && echo 'user ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 
-COPY ./KasperskyOS-Community-Edition-RaspberryPi4b-1.3.0.166_ru.deb /tmp
+COPY ./KasperskyOS-Community-Edition-RaspberryPi4b-1.3.0_amd64.deb /tmp
 
-RUN apt install /tmp/KasperskyOS-Community-Edition-RaspberryPi4b-1.3.0.166_ru.deb -y
-RUN rm /tmp/KasperskyOS-Community-Edition-RaspberryPi4b-1.3.0.166_ru.deb \
-    && echo '/opt/KasperskyOS-Community-Edition-RaspberryPi4b-1.3.0.166/toolchain/lib' >> /etc/ld.so.conf.d/KasperskyOS.conf \
-    && echo '/opt/KasperskyOS-Community-Edition-RaspberryPi4b-1.3.0.166/toolchain/x86_64-pc-linux-gnu/aarch64-kos/lib/' >> /etc/ld.so.conf.d/KasperskyOS.conf \
+RUN apt install /tmp/KasperskyOS-Community-Edition-RaspberryPi4b-1.3.0_amd64.deb -y
+RUN rm /tmp/KasperskyOS-Community-Edition-RaspberryPi4b-1.3.0_amd64.deb \
+    && echo '/opt/KasperskyOS-Community-Edition-1.3.0.166/toolchain/lib' >> /etc/ld.so.conf.d/KasperskyOS.conf \
+    && echo '/opt/KasperskyOS-Community-Edition-1.3.0.166/toolchain/x86_64-pc-linux-gnu/aarch64-kos/lib/' >> /etc/ld.so.conf.d/KasperskyOS.conf \
     && ldconfig
 
 RUN su -c 'pip3 install PyYAML mavproxy pymavlink --user --upgrade' user
@@ -334,7 +334,7 @@ RUN chown -R 1000:1000 /home/user
 CMD ["bash"]
 ```
 
-В Makefile добавиться правило:
+В Makefile добавится правило:
 
 ```Makefile
 docker-image-simulator-base:

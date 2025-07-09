@@ -11,9 +11,14 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <thread>
 
 #define NK_USE_UNQUALIFIED_NAMES
 #include <drone_controller/AutopilotConnector.edl.h>
+
+/** \cond */
+std::thread listenThread;
+/** \endcond */
 
 /**
  * \~English \brief AutopilotConnector component main program entry point.
@@ -39,6 +44,8 @@ int main(void) {
         logEntry("Trying again to connect in 1s", ENTITY_NAME, LogLevel::LOG_WARNING);
         sleep(1);
     }
+
+    listenThread = std::thread(listenAutopilot);
 
     logEntry("Initialization is finished", ENTITY_NAME, LogLevel::LOG_INFO);
 

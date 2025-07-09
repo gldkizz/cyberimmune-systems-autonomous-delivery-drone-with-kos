@@ -19,6 +19,12 @@ add_executable (KlogEntityQemu "../../klog/src/klog_entity.c")
 target_link_libraries (KlogEntityQemu ${klog_SYSTEM_AUDIT_LIB})
 add_dependencies (KlogEntityQemu klog_edl_files)
 
+find_program (NTPD_ENTITY
+              NAMES "ntpd" REQUIRED
+              NO_CMAKE_PATH
+              NO_CMAKE_ENVIRONMENT_PATH
+              NO_SYSTEM_ENVIRONMENT_PATH)
+
 set (ENTITIES
         AutopilotConnector
         CredentialManager
@@ -28,6 +34,7 @@ set (ENTITIES
         ServerConnector
         Logger
         ${precompiled_vfsVfsSdCardFs}
+        ${NTPD_ENTITY}
         KlogStorageEntity)
 set (FILES)
 
@@ -71,25 +78,53 @@ if (SIMULATION OR SERVER)
         DEPENDS_ON_ENTITY "${precompiled_vfsVfsSdCardFs};${precompiled_vfsVfsNet}"
         EXTRA_ENV ${DHCPCD_ENV}
         EXTRA_ARGS ${DHCPCD_ARGS})
+
+    file(COPY_FILE ${CMAKE_SOURCE_DIR}/resources/hdd/etc/ntp.conf.in ${CMAKE_SOURCE_DIR}/resources/hdd/etc/ntp.conf)
+    file(APPEND ${CMAKE_SOURCE_DIR}/resources/hdd/etc/ntp.conf "server ${NTP_IP} minpoll 3 maxpoll 9 iburst trust")
+
     list(APPEND ENTITIES ${precompiled_vfsVfsSdCardFs} ${precompiled_vfsVfsNet} ${rump_DHCPCD_ENTITY})
-    list(APPEND FILES ${CMAKE_SOURCE_DIR}/resources/hdd/etc/dhcpcd.conf ${CMAKE_SOURCE_DIR}/resources/hdd/var/db/dhcpcd/.gitkeep)
+    list(APPEND FILES ${CMAKE_SOURCE_DIR}/resources/hdd/etc/dhcpcd.conf
+	              ${CMAKE_SOURCE_DIR}/resources/hdd/var/db/dhcpcd/.gitkeep
+		      ${CMAKE_SOURCE_DIR}/resources/hdd/etc/ntp.conf
+		      ${CMAKE_SOURCE_DIR}/resources/hdd/etc/hosts
+		      )
 endif ()
 
 if (SERVER)
     if (NOT SIMULATION)
-        set_target_properties (${wpa_SUPPLICANT_ENTITY} PROPERTIES
-            DEPENDS_ON_ENTITY "${precompiled_vfsVfsSdCardFs};${precompiled_vfsVfsNet}"
+        set_target_properties (${rump_DHCPCD_ENTITY} PROPERTIES
+            DEPENDS_ON_ENTITY ""
             EXTRA_CONNECTIONS "\
         - target: kl.VfsNet
           id: kl.VfsNet"
             EXTRA_ENV "\
-            VFS_FILESYSTEM_BACKEND: client{fs->net}:kl.VfsSdCardFs
+            VFS_FILESYSTEM_BACKEND: client:kl.VfsNet
+            VFS_NETWORK_BACKEND: client:kl.VfsNet"
+            EXTRA_ARGS ${DHCPCD_ARGS})
+        set_target_properties (${precompiled_vfsVfsNet} PROPERTIES
+        DEPENDS_ON_ENTITY "${entropy_ENTITY};dnet_brcmfmac::server;${dnet_ENTITY}")
+        set_target_properties (${wpa_SUPPLICANT_ENTITY} PROPERTIES
+            DEPENDS_ON_ENTITY ""
+            EXTRA_CONNECTIONS "\
+        - target: kl.VfsNet
+          id: kl.VfsNet"
+            EXTRA_ENV "\
+            VFS_FILESYSTEM_BACKEND: client:kl.VfsNet
             VFS_NETWORK_BACKEND: client:kl.VfsNet"
             EXTRA_ARGS "\
-            - '-ien1'
+            - '-iwl0'
             - '-c/etc/wpa_supplicant.conf'")
         list(APPEND ENTITIES ${wpa_SUPPLICANT_ENTITY})
         list(APPEND FILES ${CMAKE_SOURCE_DIR}/resources/hdd/etc/wpa_supplicant.conf)
+        add_custom_command (OUTPUT ${CMAKE_BINARY_DIR}/brcmfmac43455-sdio.bin
+                    COMMAND cp /lib/firmware/brcm/brcmfmac43455-sdio.bin ${CMAKE_BINARY_DIR}/brcmfmac43455-sdio.bin)
+        add_custom_command (OUTPUT ${CMAKE_BINARY_DIR}/brcmfmac43455-sdio.txt
+                    COMMAND cp /lib/firmware/brcm/brcmfmac43455-sdio.raspberrypi,4-model-b.txt ${CMAKE_BINARY_DIR}/brcmfmac43455-sdio.txt)
+        add_custom_command (OUTPUT ${CMAKE_BINARY_DIR}/brcmfmac43455-sdio.clm_blob
+                    COMMAND cp /lib/firmware/brcm/brcmfmac43455-sdio.clm_blob ${CMAKE_BINARY_DIR}/brcmfmac43455-sdio.clm_blob)
+        set (FIRMWARE_FILES ${CMAKE_BINARY_DIR}/brcmfmac43455-sdio.bin
+                    ${CMAKE_BINARY_DIR}/brcmfmac43455-sdio.txt
+                    ${CMAKE_BINARY_DIR}/brcmfmac43455-sdio.clm_blob)
     endif()
 endif ()
 
@@ -142,6 +177,6 @@ else ()
                         CONNECTIONS_CFG ${CONNECITONS_FILE}
                         SECURITY_PSL ${SECURITY_FILE}
                         KLOG_ENTITY KlogEntityHw
-                        IMAGE_FILES ${ENTITIES} ${FILES})
+                        IMAGE_FILES ${ENTITIES} ${FIRMWARE_FILES} ${FILES})
     target_link_libraries (KlogEntityHw kssaudit)
 endif()

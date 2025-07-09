@@ -8,6 +8,7 @@ nwdiag {
     arducopter;
     mavproxy;
     orvd;
+    mqtt-broker;
   }
 
   network Host {
@@ -23,9 +24,10 @@ nwdiag {
     arducopter [address = "172.28.0.2"]
     mavproxy [address = "172.28.0.3"]
     orvd [address = "172.28.0.4"]
+    mqtt-broker [address = "172.28.0.5"]
     APM_Planner2 [address = "172.28.5.254"]
   }
- 
+
   network QEMU {
     address = "10.0.2.0/24"
 

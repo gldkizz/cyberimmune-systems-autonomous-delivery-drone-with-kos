@@ -1,7 +1,14 @@
 FROM cr.yandex/mirror/ubuntu:22.04
 
 ENV DEBIAN_FRONTEND noninteractive
-ENV PATH="${PATH}:/opt/KasperskyOS-Community-Edition-1.3.0.166/toolchain/bin:/home/user/.local/bin"
+
+ARG SDK_PKG_NAME
+ARG SDK_FOLDER_NAME
+
+ENV SDK_PKG_NAME=${SDK_PKG_NAME}
+ENV SDK_FOLDER_NAME=${SDK_FOLDER_NAME}
+
+ENV PATH="${PATH}:/opt/${SDK_FOLDER_NAME}/toolchain/bin:/home/user/.local/bin"
 RUN apt-get update && \
     apt upgrade -y && \
     apt install -y \
@@ -27,15 +34,16 @@ RUN apt-get update && \
         fdisk \
         dosfstools \
         jq \
+        linux-firmware \
         && adduser --disabled-password --gecos "" user \
         && echo 'user ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 
-COPY ./KasperskyOS-Community-Edition-RaspberryPi4b-1.3.0.166_ru.deb /tmp
+COPY ./${SDK_PKG_NAME} /tmp
 
-RUN apt install /tmp/KasperskyOS-Community-Edition-RaspberryPi4b-1.3.0.166_ru.deb -y
-RUN rm /tmp/KasperskyOS-Community-Edition-RaspberryPi4b-1.3.0.166_ru.deb \
-    && echo '/opt/KasperskyOS-Community-Edition-RaspberryPi4b-1.3.0.166/toolchain/lib' >> /etc/ld.so.conf.d/KasperskyOS.conf \
-    && echo '/opt/KasperskyOS-Community-Edition-RaspberryPi4b-1.3.0.166/toolchain/x86_64-pc-linux-gnu/aarch64-kos/lib/' >> /etc/ld.so.conf.d/KasperskyOS.conf \
+RUN apt install /tmp/${SDK_PKG_NAME} -y
+RUN rm /tmp/${SDK_PKG_NAME} \
+    && echo '/opt/${SDK_FOLDER_NAME}/toolchain/lib' >> /etc/ld.so.conf.d/KasperskyOS.conf \
+    && echo '/opt/${SDK_FOLDER_NAME}/toolchain/x86_64-pc-linux-gnu/aarch64-kos/lib/' >> /etc/ld.so.conf.d/KasperskyOS.conf \
     && ldconfig
 
 RUN su -c 'pip3 install PyYAML mavproxy pymavlink --user --upgrade' user

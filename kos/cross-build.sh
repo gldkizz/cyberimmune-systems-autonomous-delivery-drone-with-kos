@@ -6,7 +6,7 @@ BUILD="${SCRIPT_DIR}/build"
 export LANG=C
 export TARGET="aarch64-kos"
 export PKG_CONFIG=""
-export SDK_PREFIX="/opt/KasperskyOS-Community-Edition-RaspberryPi4b-1.3.0.166"
+export SDK_PREFIX="/opt/$SDK_FOLDER_NAME"
 export INSTALL_PREFIX="$BUILD/../install"
 export PATH="$SDK_PREFIX/toolchain/bin:$PATH"
 
@@ -22,7 +22,8 @@ PAL_TESTS=""
 SIMULATOR_IP="10.0.2.2"
 SERVER_IP="192.168.1.78"
 MQTT_IP="127.0.0.1"
-
+NTP_IP=${SERVER_IP}
+BOARD="RPI4_BCM2711"
 COORD_SRC=1
 ALT_SRC=1
 
@@ -48,6 +49,8 @@ function help
              User-defined IP of the ATM server
     --mqtt-ip,
              User-defined IP of MQTT server
+    --ntp-ip,
+             User-defined IP of NTP server
     --target,
              Build target: hardware (real), simulation (sim), unit-tests (unit) or pal-tests (pal)
     --mode,
@@ -58,7 +61,7 @@ function help
              Source of altitude: baro or lns
 
   Examples:
-      bash cross-build.sh -s /opt/KasperskyOS-Community-Edition-RaspberryPi4b-1.3.0.166
+      bash cross-build.sh -s /opt/KasperskyOS-Community-Edition-RaspberryPi4b-wifi
 
 EOF
 }
@@ -84,6 +87,9 @@ do
         --mqtt-ip)
             MQTT_IP=$2
             ;;
+	--ntp-ip)
+	    NTP_IP=$2
+	    ;;
         --board-id)
             BOARD_ID=$2
             ;;
@@ -180,8 +186,10 @@ fi
       -D SIMULATOR_IP=$SIMULATOR_IP \
       -D SERVER_IP=$SERVER_IP \
       -D MQTT_IP=$MQTT_IP \
+      -D NTP_IP=$NTP_IP \
       -D COORD_SRC=$COORD_SRC \
       -D ALT_SRC=$ALT_SRC \
+      -D BOARD=$BOARD \
       -D CMAKE_BUILD_TYPE:STRING=Debug \
       -D CMAKE_INSTALL_PREFIX:STRING="$INSTALL_PREFIX" \
       -D CMAKE_FIND_ROOT_PATH="${SDK_PREFIX}/sysroot-$TARGET" \

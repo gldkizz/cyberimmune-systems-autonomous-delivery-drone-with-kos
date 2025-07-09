@@ -1,9 +1,17 @@
 import math
+from hashlib import sha256
 import pytest 
-from utils.utils import *
+from utils import (
+    generate_keys, get_sha256_hex, parse_mission, read_mission, home_handler,
+    takeoff_handler, waypoint_handler, servo_handler, land_handler,
+    encode_mission, sign, verify, haversine, cast_wrapper, is_point_in_polygon,
+    get_new_polygon_feature
+)
+from db import get_key
+from constants import ORVD_KEY_SIZE
+from context import context
 
 from unittest.mock import patch, MagicMock
-from utils.utils import generate_keys
 
 mock_random_generator = MagicMock()
 mock_key = MagicMock()
@@ -65,8 +73,8 @@ def test_encode_mission():
     assert encode_mission(mission_list) == expected
 
 
-@patch('utils.utils.Random.new')
-@patch('utils.utils.RSA.generate')
+@patch('utils.keys.Random.new')
+@patch('utils.keys.RSA.generate')
 def test_generate_keys_success(mock_rsa_generate, mock_random_new):
     mock_random_new.return_value.read = mock_random_generator
     mock_rsa_generate.return_value = mock_key
@@ -78,7 +86,7 @@ def test_generate_keys_success(mock_rsa_generate, mock_random_new):
 
     mock_random_new.assert_called_once()
     mock_rsa_generate.assert_called_once_with(keysize, mock_random_generator)
-    assert loaded_keys[key_group] == mock_key
+    assert context.loaded_keys[key_group] == mock_key
 
 def test_generate_keys_invalid_keysize():
     keysize = -1
@@ -88,7 +96,7 @@ def test_generate_keys_invalid_keysize():
 
 def test_get_key_private_true_existing_group():
     key = get_key(TEST_KEY_GROUP, private=True)
-    assert key == loaded_keys[TEST_KEY_GROUP]
+    assert key == context.loaded_keys[TEST_KEY_GROUP]
 
 def test_get_key_private_true_non_existing_group():
     key = get_key('non_existing_group', private=True)
@@ -100,7 +108,7 @@ def test_get_key_wrong_group():
     
 def test_get_key_orvd():
     key = get_key(TEST_KEY_GROUP, private=False)
-    assert key != None
+    assert key is not None
 
 def test_sign():
     message = "This is a test message"
@@ -114,13 +122,13 @@ def test_verify():
     
     signature = sign(message, TEST_KEY_GROUP)
     
-    assert verify(message, signature, TEST_KEY_GROUP) == True
+    assert verify(message, signature, TEST_KEY_GROUP) is True
 
 def test_verify_invalid_signature():
     message = "This is a test message"
     invalid_signature = 1234567890
     
-    assert verify(message, invalid_signature, TEST_KEY_GROUP) == False
+    assert verify(message, invalid_signature, TEST_KEY_GROUP) is False
 
 def test_verify_modified_message():
     message = "This is a test message"
@@ -128,7 +136,7 @@ def test_verify_modified_message():
     
     signature = sign(message, TEST_KEY_GROUP)
     
-    assert verify(modified_message, signature, TEST_KEY_GROUP) == False
+    assert verify(modified_message, signature, TEST_KEY_GROUP) is False
     
 
 def test_haversine_zero_distance():
@@ -197,24 +205,24 @@ def test_get_new_polygon_feature():
 def test_point_inside_polygon():
     polygon = [(0, 0), (4, 0), (4, 4), (0, 4)]
     point = (2, 2)
-    assert is_point_in_polygon(point, polygon) == True
+    assert is_point_in_polygon(point, polygon) is True
 
 def test_point_outside_polygon():
     polygon = [(0, 0), (4, 0), (4, 4), (0, 4)]
     point = (5, 5)
-    assert is_point_in_polygon(point, polygon) == False
+    assert is_point_in_polygon(point, polygon) is False
 
 def test_point_on_vertex():
     polygon = [(0, 0), (4, 0), (4, 4), (0, 4)]
     point = (4, 4)
-    assert is_point_in_polygon(point, polygon) == True
+    assert is_point_in_polygon(point, polygon) is True
 
 def test_point_on_horizontal_edge():
     polygon = [(0, 0), (4, 0), (4, 4), (0, 4)]
     point = (2, 4)
-    assert is_point_in_polygon(point, polygon) == True
+    assert is_point_in_polygon(point, polygon) is True
 
 def test_point_on_vertical_edge():
     polygon = [(0, 0), (4, 0), (4, 4), (0, 4)]
     point = (4, 2)
-    assert is_point_in_polygon(point, polygon) == True
+    assert is_point_in_polygon(point, polygon) is True

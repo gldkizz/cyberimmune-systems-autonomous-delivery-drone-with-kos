@@ -1,9 +1,39 @@
-from flask import Blueprint, request, render_template, redirect, jsonify, send_file
-from utils.api_handlers import *
+import os
+import json
+from flask import request, render_template, redirect, jsonify, send_file
+from db.dao import check_user_token
+from constants import (
+    APIRoute, AdminRoute, GeneralRoute, KeyGroup, FORBIDDEN_ZONES_PATH, TILES_PATH
+)
+from utils import (
+    cast_wrapper, sign, verify, mock_verifier, compute_and_save_forbidden_zones_delta,
+    bad_request, regular_request, signed_request, authorized_request
+)
+from handlers.api_handlers import (
+    key_kos_exchange_handler, auth_handler, get_all_forbidden_zones_handler,
+    get_forbidden_zones_delta_handler, get_forbidden_zones_hash_handler,
+)
+from handlers.admin_handlers import (
+    admin_auth_handler, arm_decision_handler, force_disarm_handler,
+    force_disarm_all_handler, get_state_handler, get_mission_handler,
+    get_telemetry_handler, get_waiter_number_handler,
+    mission_decision_handler, admin_kill_switch_handler, get_id_list_handler,
+    get_mission_state_handler, change_fly_accept_handler,
+    get_forbidden_zone_handler, get_forbidden_zones_handler,
+    get_forbidden_zones_names_handler, set_forbidden_zone_handler,
+    delete_forbidden_zone_handler, get_delay_handler, set_delay_handler,
+    revise_mission_decision_handler, get_display_mode_handler,
+    toggle_display_mode_handler, get_flight_info_response_mode_handler,
+    get_all_data_handler, toggle_flight_info_response_mode_handler
+)
+from handlers.general_handlers import (
+    key_ms_exchange_handler, fmission_ms_handler, get_logs_handler,
+    get_telemetry_csv_handler, get_events_handler
+)
+from handlers.mqtt_handlers import mqtt_publish_forbidden_zones
+from .blueprint import bp
 
-bp = Blueprint('main', __name__)
-
-@bp.route('/')
+@bp.route(GeneralRoute.INDEX)
 def index():
     """
     Отображает главную страницу.
@@ -22,7 +52,7 @@ def index():
     return render_template('index.html')
 
 
-@bp.route('/tiles/index')
+@bp.route(GeneralRoute.TILES_INDEX)
 def tiles_index():
     """
     Возвращает список доступных оффлайн тайлов карты.
@@ -38,7 +68,7 @@ def tiles_index():
             type: string
             example: "12/345/678"
     """
-    tiles_dir = './static/resources/tiles'
+    tiles_dir = TILES_PATH
     tiles_index = []
     for root, dirs, files in os.walk(tiles_dir):
         for file in files:
@@ -50,7 +80,7 @@ def tiles_index():
     return jsonify(tiles_index)
 
 
-@bp.route('/admin')
+@bp.route(AdminRoute.INDEX)
 def admin():
     """
     Отображает страницу администратора или перенаправляет на страницу аутентификации.
@@ -73,13 +103,13 @@ def admin():
               example: "<html>...</html>"
     """
     token = request.args.get('token')
-    if token == None or not check_user_token(token):
-        return redirect("/admin/auth_page")
+    if token is None or not check_user_token(token):
+        return redirect(AdminRoute.AUTH_PAGE)
     else:
         return render_template('admin.html')
 
 
-@bp.route('/admin/auth')
+@bp.route(AdminRoute.AUTH)
 def admin_auth():
     """
     Обрабатывает аутентификацию администратора.
@@ -111,7 +141,7 @@ def admin_auth():
     return regular_request(handler_func=admin_auth_handler, login=login, password=password)
 
 
-@bp.route('/admin/auth_page')
+@bp.route(AdminRoute.AUTH_PAGE)
 def auth_page():
     """
     Отображает страницу аутентификации администратора.
@@ -137,7 +167,7 @@ def auth_page():
     return render_template('admin_auth.html', next_url=next_url)
 
 
-@bp.route('/admin/arm_decision')
+@bp.route(AdminRoute.ARM_DECISION)
 def arm_decision():
     """
     Обрабатывает решение администратора об арме БПЛА.
@@ -183,7 +213,7 @@ def arm_decision():
         return bad_request('Wrong id/decision')
 
 
-@bp.route('/admin/mission_decision')
+@bp.route(AdminRoute.MISSION_DECISION)
 def mission_decision():
     """
     Обрабатывает решение администратора о миссии.
@@ -229,7 +259,7 @@ def mission_decision():
         return bad_request('Wrong id/decision')
 
 
-@bp.route('/admin/force_disarm')
+@bp.route(AdminRoute.FORCE_DISARM)
 def force_disarm():
     """
     Принудительно дизармит указанный БПЛА.
@@ -267,7 +297,7 @@ def force_disarm():
         return bad_request('Wrong id')
 
 
-@bp.route('/admin/force_disarm_all')
+@bp.route(AdminRoute.FORCE_DISARM_ALL)
 def force_disarm_all():
     """
     Принудительно дизармит все БПЛА.
@@ -291,7 +321,7 @@ def force_disarm_all():
     return authorized_request(handler_func=force_disarm_all_handler, token=token)
 
 
-@bp.route('/admin/kill_switch')
+@bp.route(AdminRoute.KILL_SWITCH)
 def admin_kill_switch():
     """
     Активирует аварийное выключение для указанного БПЛА.
@@ -329,7 +359,7 @@ def admin_kill_switch():
         return bad_request('Wrong id')
 
 
-@bp.route('/admin/get_state')
+@bp.route(AdminRoute.GET_STATE)
 def get_state():
     """
     Получает текущее состояние указанного БПЛА.
@@ -367,7 +397,7 @@ def get_state():
         return bad_request('Wrong id')
 
 
-@bp.route('/admin/get_mission_state')
+@bp.route(AdminRoute.GET_MISSION_STATE)
 def get_mission_state():
     """
     Получает текущее состояние миссии для указанного БПЛА.
@@ -405,7 +435,7 @@ def get_mission_state():
         return bad_request('Wrong id')
 
 
-@bp.route('/admin/get_mission')
+@bp.route(AdminRoute.GET_MISSION)
 def get_mission():
     """
     Получает полетное задание для указанного БПЛА.
@@ -442,7 +472,7 @@ def get_mission():
         return bad_request('Wrong id')
 
 
-@bp.route('/admin/get_telemetry')
+@bp.route(AdminRoute.GET_TELEMETRY)
 def get_telemetry():
     """
     Получает телеметрию для указанного БПЛА.
@@ -503,7 +533,7 @@ def get_telemetry():
         return bad_request('Wrong id')
 
 
-@bp.route('/logs/get_telemetry_csv')
+@bp.route(GeneralRoute.GET_TELEMETRY_CSV)
 def get_telemetry_csv():
     """
     Получает всю телеметрию для указанного БПЛА в формате CSV.
@@ -537,7 +567,7 @@ def get_telemetry_csv():
         return bad_request('Wrong id')
 
 
-@bp.route('/admin/get_waiter_number')
+@bp.route(AdminRoute.GET_WAITER_NUMBER)
 def get_waiter_number():
     """
     Получает количество ожидающих арма БПЛА.
@@ -561,7 +591,7 @@ def get_waiter_number():
     return authorized_request(handler_func=get_waiter_number_handler, token=token)
 
 
-@bp.route('/admin/get_id_list')
+@bp.route(AdminRoute.GET_ID_LIST)
 def get_id_list():
     """
     Получает список идентификаторов всех БПЛА.
@@ -585,7 +615,7 @@ def get_id_list():
     return authorized_request(handler_func=get_id_list_handler, token=token)
 
 
-@bp.route('/admin/change_fly_accept')
+@bp.route(AdminRoute.CHANGE_FLY_ACCEPT)
 def change_fly_accept():
     """
     Изменяет разрешение на полет для указанного БПЛА.
@@ -631,7 +661,7 @@ def change_fly_accept():
         return bad_request('Wrong id/decision')
       
 
-@bp.route('/admin/get_forbidden_zones')
+@bp.route(AdminRoute.GET_FORBIDDEN_ZONES)
 def get_forbidden_zones():
     """
     Возвращает все запрещенные зоны.
@@ -661,7 +691,7 @@ def get_forbidden_zones():
     return authorized_request(handler_func=get_forbidden_zones_handler, token=token)
 
 
-@bp.route('/admin/get_forbidden_zone')
+@bp.route(AdminRoute.GET_FORBIDDEN_ZONE)
 def get_forbidden_zone():
     """
     Получает информацию о запрещенной для полета зоне по ее имени.
@@ -699,7 +729,7 @@ def get_forbidden_zone():
         return bad_request('Wrong name')
 
 
-@bp.route('/admin/get_forbidden_zones_names')
+@bp.route(AdminRoute.GET_FORBIDDEN_ZONES_NAMES)
 def get_forbidden_zones_names():
     """
     Получает список имен всех запрещенных для полета зон.
@@ -723,7 +753,7 @@ def get_forbidden_zones_names():
     return authorized_request(handler_func=get_forbidden_zones_names_handler, token=token)
 
 
-@bp.route('/admin/set_forbidden_zone', methods=['POST'])
+@bp.route(AdminRoute.SET_FORBIDDEN_ZONE, methods=['POST'])
 def set_forbidden_zone():
     """
     Устанавливает запрещенную для полета зону.
@@ -772,7 +802,7 @@ def set_forbidden_zone():
         return bad_request('Wrong name')
 
 
-@bp.route('/admin/delete_forbidden_zone', methods=['DELETE'])
+@bp.route(AdminRoute.DELETE_FORBIDDEN_ZONE, methods=['DELETE'])
 def delete_forbidden_zone():
     """
     Удаляет запрещенную для полета зону по ее имени.
@@ -810,7 +840,7 @@ def delete_forbidden_zone():
         return bad_request('Wrong name')
   
 
-@bp.route('/admin/forbidden_zones')
+@bp.route(AdminRoute.FORBIDDEN_ZONES)
 def forbidden_zones():
     """
     Отображает страницу управления запрещенными зонами.
@@ -839,7 +869,7 @@ def forbidden_zones():
         return render_template('forbidden_zones.html', token=token)
 
 
-@bp.route('/logs')
+@bp.route(GeneralRoute.LOGS_PAGE)
 def logs_page():
     """
     Отображает страницу логов.
@@ -857,7 +887,7 @@ def logs_page():
     return render_template('logs.html')
 
 
-@bp.route('/logs/get_logs')
+@bp.route(GeneralRoute.GET_LOGS)
 def get_logs():
     """
     Получает логи для указанного БПЛА.
@@ -887,47 +917,25 @@ def get_logs():
     else:
         return bad_request('Wrong id')
 
-@bp.route('/api/nmission')
-def revise_mission():
-  """_summary_
 
-  Returns:
-      _type_: _description_
-  """
-  id = cast_wrapper(request.args.get('id'), str)
-  mission = cast_wrapper(request.args.get('mission'), str)
-  sig = request.args.get('sig')
-  if id:
-      return signed_request(handler_func=revise_mission_handler, verifier_func=mock_verifier, signer_func=sign,
-                            query_str=f'/api/nmission?id={id}&mission={mission}', key_group=f'kos{id}', sig=sig, id=id, mission=mission)
-  else:
-      return bad_request('Wrong id')
-  
-
-@bp.route('/api/logs')
-def save_logs():
+@bp.route(GeneralRoute.GET_EVENTS)
+def get_events():
     """
-    Сохраняет лог для указанного БПЛА.
+    Получает события для указанного БПЛА.
     ---
     tags:
-      - api
+      - logs
     parameters:
       - name: id
         in: query
         type: string
         required: true
         description: Идентификатор БПЛА.
-      - name: log
-        in: query
-        type: string
-        required: true
-        description: Строка с логами для сохранения.
     responses:
       200:
-        description: Лог успешно сохранен.
+        description: События для указанного БПЛА или $-1, если события не найдены.
         schema:
           type: string
-          example: "$OK"
       400:
         description: Неверный идентификатор.
         schema:
@@ -935,14 +943,12 @@ def save_logs():
           example: "Wrong id"
     """
     id = cast_wrapper(request.args.get('id'), str)
-    log = cast_wrapper(request.args.get('log'), str)
     if id:
-        return regular_request(handler_func=save_logs_handler, id=id, log=log)
+        return regular_request(handler_func=get_events_handler, id=id)
     else:
         return bad_request('Wrong id')
 
-
-@bp.route('/mission_sender')
+@bp.route(GeneralRoute.MISSION_SENDER)
 def mission_sender():
     """
     Отображает страницу отправки миссии.
@@ -960,7 +966,7 @@ def mission_sender():
     return render_template('mission_sender.html')
 
 
-@bp.route('/mission_sender/fmission_ms', methods=['POST'])
+@bp.route(GeneralRoute.FMISSION_MS, methods=['POST'])
 def fmission():
     """
     Обрабатывает отправку миссии от Mission Sender.
@@ -1003,7 +1009,7 @@ def fmission():
         return bad_request('Wrong id')
 
   
-@bp.route('/mission_sender/key')
+@bp.route(GeneralRoute.KEY_MS_EXCHANGE)
 def key_ms_exchange():
     """
     Обрабатывает обмен ключами с Mission Sender.
@@ -1033,7 +1039,7 @@ def key_ms_exchange():
         return bad_request('Wrong id')
 
 
-@bp.route('/api/key')
+@bp.route(APIRoute.KEY_EXCHANGE)
 def key_kos_exchange():
     """
     Обрабатывает обмен ключами с БПЛА.
@@ -1079,48 +1085,7 @@ def key_kos_exchange():
         return bad_request('Wrong id')
 
 
-@bp.route('/api/arm')
-def arm_request():
-    """
-    Обрабатывает запрос на арм от БПЛА.
-    ---
-    tags:
-      - api
-    parameters:
-      - name: id
-        in: query
-        type: string
-        required: true
-        description: Идентификатор БПЛА.
-      - name: sig
-        in: query
-        type: string
-        required: true
-        description: Подпись запроса.
-    responses:
-      200:
-        description: Состояние арма (0 - вкл, 1 - выкл) и время до следующего сеанса связи или $-1, если БПЛА не найден.
-        schema:
-          type: string
-          example: "$Arm {state}$Delay {time in seconds}#{signature}"
-      400:
-        description: Неверный идентификатор.
-        schema:
-          type: string
-          example: "Wrong id"
-      403:
-        description: Ошибка проверки подписи.
-    """
-    id = cast_wrapper(request.args.get('id'), str)
-    sig = request.args.get('sig')
-    if id:
-        return signed_request(handler_func=arm_handler, verifier_func=verify, signer_func=sign,
-                          query_str=f'/api/arm?id={id}', key_group=f'kos{id}', sig=sig, id=id)
-    else:
-        return bad_request('Wrong id')
-
-
-@bp.route('/api/auth')
+@bp.route(APIRoute.AUTH)
 def auth():
     """
     Обрабатывает запрос на аутентификацию от БПЛА.
@@ -1156,261 +1121,261 @@ def auth():
     if id is not None:
         sig = request.args.get('sig')
         return signed_request(handler_func=auth_handler, verifier_func=verify, signer_func=sign,
-                          query_str=f'/api/auth?id={id}', key_group=f'kos{id}', sig=sig, id=id)
+                          query_str=f'{APIRoute.AUTH}?id={id}', key_group=f'{KeyGroup.KOS}{id}', sig=sig, id=id)
     else:
         return bad_request('Wrong id')
 
 
-@bp.route('/api/fly_accept')
-def fly_accept():
-    """
-    Обрабатывает запрос на разрешение полета от БПЛА.
-    ---
-    tags:
-      - api
-    parameters:
-      - name: id
-        in: query
-        type: string
-        required: true
-        description: Идентификатор БПЛА.
-      - name: sig
-        in: query
-        type: string
-        required: true
-        description: Подпись запроса.
-    responses:
-      200:
-        description: Состояние арма (0 - вкл, 1 - выкл) и время до следующего сеанса связи или $-1, если БПЛА не найден.
-        schema:
-          type: string
-          example: "$Arm: {state}$Delay {time in seconds}#{signature}"
-      400:
-        description: Неверный идентификатор.
-        schema:
-          type: string
-          example: "Wrong id"
-      403:
-        description: Ошибка проверки подписи.
-    """
-    id = cast_wrapper(request.args.get('id'), str)
-    sig = request.args.get('sig')
-    if id:
-        return signed_request(handler_func=fly_accept_handler, verifier_func=verify, signer_func=sign,
-                          query_str=f'/api/fly_accept?id={id}', key_group=f'kos{id}', sig=sig, id=id)
-    else:
-        return bad_request('Wrong id')
+# @bp.route(APIRoute.FLY_ACCEPT)
+# def fly_accept():
+#     """
+#     Обрабатывает запрос на разрешение полета от БПЛА.
+#     ---
+#     tags:
+#       - api
+#     parameters:
+#       - name: id
+#         in: query
+#         type: string
+#         required: true
+#         description: Идентификатор БПЛА.
+#       - name: sig
+#         in: query
+#         type: string
+#         required: true
+#         description: Подпись запроса.
+#     responses:
+#       200:
+#         description: Состояние арма (0 - вкл, 1 - выкл) и время до следующего сеанса связи или $-1, если БПЛА не найден.
+#         schema:
+#           type: string
+#           example: "$Arm: {state}$Delay {time in seconds}#{signature}"
+#       400:
+#         description: Неверный идентификатор.
+#         schema:
+#           type: string
+#           example: "Wrong id"
+#       403:
+#         description: Ошибка проверки подписи.
+#     """
+#     id = cast_wrapper(request.args.get('id'), str)
+#     sig = request.args.get('sig')
+#     if id:
+#         return signed_request(handler_func=fly_accept_handler, verifier_func=verify, signer_func=sign,
+#                           query_str=f'{APIRoute.FLY_ACCEPT}?id={id}', key_group=f'{KeyGroup.KOS}{id}', sig=sig, id=id)
+#     else:
+#         return bad_request('Wrong id')
 
  
-@bp.route('/api/flight_info')
-def flight_info():
-    """
-    Обрабатывает запрос на информацию полета от БПЛА.
-    ---
-    tags:
-      - api
-    parameters:
-      - name: id
-        in: query
-        type: string
-        required: true
-        description: Идентификатор БПЛА.
-      - name: sig
-        in: query
-        type: string
-        required: true
-        description: Подпись запроса.
-    responses:
-      200:
-        description: Состояние полета (-1 в случае kill switch, 0 в случае продолжения полета, 1 в случае приостановки полета), хэш запретных зон и время до следующего сеанса связи или $-1, если БПЛА не найден.
-        schema:
-          type: string
-          example: "$Flight {status}$ForbiddenZonesHash {hash}$Delay {time in seconds}#{signature}"
-      400:
-        description: Неверный идентификатор.
-        schema:
-          type: string
-          example: "Wrong id"
-      403:
-        description: Ошибка проверки подписи.
-    """
-    id = cast_wrapper(request.args.get('id'), str)
-    sig = request.args.get('sig')
-    if not modes["flight_info_response"]:
-        return '', 403
-    elif id:
-        return signed_request(handler_func=flight_info_handler, verifier_func=verify, signer_func=sign,
-                          query_str=f'/api/flight_info?id={id}', key_group=f'kos{id}', sig=sig, id=id)
-    else:
-        return bad_request('Wrong id')
+# @bp.route(APIRoute.FLIGHT_INFO)
+# def flight_info():
+#     """
+#     Обрабатывает запрос на информацию полета от БПЛА.
+#     ---
+#     tags:
+#       - api
+#     parameters:
+#       - name: id
+#         in: query
+#         type: string
+#         required: true
+#         description: Идентификатор БПЛА.
+#       - name: sig
+#         in: query
+#         type: string
+#         required: true
+#         description: Подпись запроса.
+#     responses:
+#       200:
+#         description: Состояние полета (-1 в случае kill switch, 0 в случае продолжения полета, 1 в случае приостановки полета), хэш запретных зон и время до следующего сеанса связи или $-1, если БПЛА не найден.
+#         schema:
+#           type: string
+#           example: "$Flight {status}$ForbiddenZonesHash {hash}$Delay {time in seconds}#{signature}"
+#       400:
+#         description: Неверный идентификатор.
+#         schema:
+#           type: string
+#           example: "Wrong id"
+#       403:
+#         description: Ошибка проверки подписи.
+#     """
+#     id = cast_wrapper(request.args.get('id'), str)
+#     sig = request.args.get('sig')
+#     if not context.flight_info_response:
+#         return '', 403
+#     elif id:
+#         return signed_request(handler_func=flight_info_handler, verifier_func=verify, signer_func=sign,
+#                           query_str=f'{APIRoute.FLIGHT_INFO}?id={id}', key_group=f'{KeyGroup.KOS}{id}', sig=sig, id=id)
+#     else:
+#         return bad_request('Wrong id')
       
       
-@bp.route('/api/telemetry')
-def telemetry():
-    """
-    Обрабатывает получение телеметрии от БПЛА.
-    ---
-    tags:
-      - api
-    parameters:
-      - name: id
-        in: query
-        type: string
-        required: true
-        description: Идентификатор БПЛА.
-      - name: sig
-        in: query
-        type: string
-        required: true
-        description: Подпись запроса.
-      - name: lat
-        in: query
-        type: string
-        required: true
-        description: Широта.
-      - name: lon
-        in: query
-        type: string
-        required: true
-        description: Долгота.
-      - name: alt
-        in: query
-        type: string
-        required: true
-        description: Высота.
-      - name: azimuth
-        in: query
-        type: string
-        required: true
-        description: Азимут.
-      - name: dop
-        in: query
-        type: string
-        required: true
-        description: DOP (Dilution of Precision).
-      - name: sats
-        in: query
-        type: string
-        required: true
-        description: Количество спутников.
-      - name: speed
-        in: query
-        type: string
-        required: true
-        description: Скорость.
-    responses:
-      200:
-        description: Состояние арма (0 - вкл, 1 - выкл) или $-1, если БПЛА не найден.
-        schema:
-          type: string
-          example: "$Arm: {state}#{signature}"
-      400:
-        description: Неверный идентификатор.
-        schema:
-          type: string
-          example: "Wrong id"
-      403:
-        description: Ошибка проверки подписи.
-    """
-    id = cast_wrapper(request.args.get('id'), str)
-    sig = request.args.get('sig')
-    lat = request.args.get('lat')
-    lon = request.args.get('lon')
-    alt = request.args.get('alt')
-    azimuth = request.args.get('azimuth')
-    dop = request.args.get('dop')
-    sats = request.args.get('sats')
-    speed = request.args.get('speed')
-    if id:
-        return signed_request(handler_func=telemetry_handler, verifier_func=verify, signer_func=sign,
-                          query_str=f'/api/telemetry?id={id}&lat={lat}&lon={lon}&alt={alt}&azimuth={azimuth}&dop={dop}&sats={sats}&speed={speed}',
-                          key_group=f'kos{id}', sig=sig, id=id, lat=lat, lon=lon, alt=alt, azimuth=azimuth, dop=dop, sats=sats, speed=speed)
-    else:
-        return bad_request('Wrong id')
+# @bp.route(APIRoute.TELEMETRY)
+# def telemetry():
+#     """
+#     Обрабатывает получение телеметрии от БПЛА.
+#     ---
+#     tags:
+#       - api
+#     parameters:
+#       - name: id
+#         in: query
+#         type: string
+#         required: true
+#         description: Идентификатор БПЛА.
+#       - name: sig
+#         in: query
+#         type: string
+#         required: true
+#         description: Подпись запроса.
+#       - name: lat
+#         in: query
+#         type: string
+#         required: true
+#         description: Широта.
+#       - name: lon
+#         in: query
+#         type: string
+#         required: true
+#         description: Долгота.
+#       - name: alt
+#         in: query
+#         type: string
+#         required: true
+#         description: Высота.
+#       - name: azimuth
+#         in: query
+#         type: string
+#         required: true
+#         description: Азимут.
+#       - name: dop
+#         in: query
+#         type: string
+#         required: true
+#         description: DOP (Dilution of Precision).
+#       - name: sats
+#         in: query
+#         type: string
+#         required: true
+#         description: Количество спутников.
+#       - name: speed
+#         in: query
+#         type: string
+#         required: true
+#         description: Скорость.
+#     responses:
+#       200:
+#         description: Состояние арма (0 - вкл, 1 - выкл) или $-1, если БПЛА не найден.
+#         schema:
+#           type: string
+#           example: "$Arm: {state}#{signature}"
+#       400:
+#         description: Неверный идентификатор.
+#         schema:
+#           type: string
+#           example: "Wrong id"
+#       403:
+#         description: Ошибка проверки подписи.
+#     """
+#     id = cast_wrapper(request.args.get('id'), str)
+#     sig = request.args.get('sig')
+#     lat = request.args.get('lat')
+#     lon = request.args.get('lon')
+#     alt = request.args.get('alt')
+#     azimuth = request.args.get('azimuth')
+#     dop = request.args.get('dop')
+#     sats = request.args.get('sats')
+#     speed = request.args.get('speed')
+#     if id:
+#         return signed_request(handler_func=telemetry_handler, verifier_func=verify, signer_func=sign,
+#                           query_str=f'{APIRoute.TELEMETRY}?id={id}&lat={lat}&lon={lon}&alt={alt}&azimuth={azimuth}&dop={dop}&sats={sats}&speed={speed}',
+#                           key_group=f'{KeyGroup.KOS}{id}', sig=sig, id=id, lat=lat, lon=lon, alt=alt, azimuth=azimuth, dop=dop, sats=sats, speed=speed)
+#     else:
+#         return bad_request('Wrong id')
     
-@bp.route('/api/kill_switch')
-def kill_switch():
-    """
-    Обрабатывает запрос на аварийное выключение от БПЛА.
-    ---
-    tags:
-      - api
-    parameters:
-      - name: id
-        in: query
-        type: string
-        required: true
-        description: Идентификатор БПЛА.
-      - name: sig
-        in: query
-        type: string
-        required: true
-        description: Подпись запроса.
-    responses:
-      200:
-        description: Состояние аварийного отключения (0 - вкл, 1 - выкл) или $-1, если БПЛА не найден.
-        schema:
-          type: string
-          example: "$KillSwitch: {state}#{signature}"
-      400:
-        description: Неверный идентификатор.
-        schema:
-          type: string
-          example: "Wrong id"
-      403:
-        description: Ошибка проверки подписи.
-    """
-    id = cast_wrapper(request.args.get('id'), str)
-    sig = request.args.get('sig')
-    if id:
-        return signed_request(handler_func=kill_switch_handler, verifier_func=verify, signer_func=sign,
-                          query_str=f'/api/kill_switch?id={id}', key_group=f'kos{id}', sig=sig, id=id)
-    else:
-        return bad_request('Wrong id')
+# @bp.route(APIRoute.KILL_SWITCH)
+# def kill_switch():
+#     """
+#     Обрабатывает запрос на аварийное выключение от БПЛА.
+#     ---
+#     tags:
+#       - api
+#     parameters:
+#       - name: id
+#         in: query
+#         type: string
+#         required: true
+#         description: Идентификатор БПЛА.
+#       - name: sig
+#         in: query
+#         type: string
+#         required: true
+#         description: Подпись запроса.
+#     responses:
+#       200:
+#         description: Состояние аварийного отключения (0 - вкл, 1 - выкл) или $-1, если БПЛА не найден.
+#         schema:
+#           type: string
+#           example: "$KillSwitch: {state}#{signature}"
+#       400:
+#         description: Неверный идентификатор.
+#         schema:
+#           type: string
+#           example: "Wrong id"
+#       403:
+#         description: Ошибка проверки подписи.
+#     """
+#     id = cast_wrapper(request.args.get('id'), str)
+#     sig = request.args.get('sig')
+#     if id:
+#         return signed_request(handler_func=kill_switch_handler, verifier_func=verify, signer_func=sign,
+#                           query_str=f'{APIRoute.KILL_SWITCH}?id={id}', key_group=f'{KeyGroup.KOS}{id}', sig=sig, id=id)
+#     else:
+#         return bad_request('Wrong id')
 
 
-@bp.route('/api/fmission_kos')
-def fmission_kos():
-    """
-    Обрабатывает запрос на получение миссии от БПЛА.
-    ---
-    tags:
-      - api
-    parameters:
-      - name: id
-        in: query
-        type: string
-        required: true
-        description: Идентификатор БПЛА.
-      - name: sig
-        in: query
-        type: string
-        required: true
-        description: Подпись запроса.
-    responses:
-      200:
-        description: Полетное задание, если найдено. Если не найдено, то $-1
-        schema:
-          type: string
-          example: "$FlightMission {mission_string}#{signature}"
-      400:
-        description: Неверный идентификатор.
-        schema:
-          type: string
-          example: "Wrong id"
-      403:
-        description: Ошибка проверки подписи.
-    """
-    id = cast_wrapper(request.args.get('id'), str)
-    sig = request.args.get('sig')
-    if id:
-        return signed_request(handler_func=fmission_kos_handler, verifier_func=verify, signer_func=sign,
-                          query_str=f'/api/fmission_kos?id={id}', key_group=f'kos{id}', sig=sig, id=id)
-    else:
-        return bad_request('Wrong id')
+# @bp.route(APIRoute.FMISSION_KOS)
+# def fmission_kos():
+#     """
+#     Обрабатывает запрос на получение миссии от БПЛА.
+#     ---
+#     tags:
+#       - api
+#     parameters:
+#       - name: id
+#         in: query
+#         type: string
+#         required: true
+#         description: Идентификатор БПЛА.
+#       - name: sig
+#         in: query
+#         type: string
+#         required: true
+#         description: Подпись запроса.
+#     responses:
+#       200:
+#         description: Полетное задание, если найдено. Если не найдено, то $-1
+#         schema:
+#           type: string
+#           example: "$FlightMission {mission_string}#{signature}"
+#       400:
+#         description: Неверный идентификатор.
+#         schema:
+#           type: string
+#           example: "Wrong id"
+#       403:
+#         description: Ошибка проверки подписи.
+#     """
+#     id = cast_wrapper(request.args.get('id'), str)
+#     sig = request.args.get('sig')
+#     if id:
+#         return signed_request(handler_func=fmission_kos_handler, verifier_func=verify, signer_func=sign,
+#                           query_str=f'{APIRoute.FMISSION_KOS}?id={id}', key_group=f'{KeyGroup.KOS}{id}', sig=sig, id=id)
+#     else:
+#         return bad_request('Wrong id')
     
 
-@bp.route('/api/get_all_forbidden_zones')
+@bp.route(APIRoute.GET_ALL_FORBIDDEN_ZONES)
 def get_all_forbidden_zones():
     """
     Возвращает информацию о всех запрещенных для полетов зонах для БПЛА.
@@ -1446,12 +1411,12 @@ def get_all_forbidden_zones():
     sig = request.args.get('sig')
     if id:
         return signed_request(handler_func=get_all_forbidden_zones_handler, verifier_func=verify, signer_func=sign,
-                          query_str=f'/api/get_all_forbidden_zones?id={id}', key_group=f'kos{id}', sig=sig, id=id)
+                          query_str=f'{APIRoute.GET_ALL_FORBIDDEN_ZONES}?id={id}', key_group=f'{KeyGroup.KOS}{id}', sig=sig, id=id)
     else:
         return bad_request('Wrong id')
       
       
-@bp.route('/api/get_forbidden_zones_delta')
+@bp.route(APIRoute.GET_FORBIDDEN_ZONES_DELTA)
 def get_forbidden_zones_delta():
     """
     Возвращает дельту изменений в запрещенных для полета зонах.
@@ -1487,12 +1452,12 @@ def get_forbidden_zones_delta():
     sig = request.args.get('sig')
     if id:
         return signed_request(handler_func=get_forbidden_zones_delta_handler, verifier_func=verify, signer_func=sign,
-                              query_str=f'/api/get_forbidden_zones_delta?id={id}', key_group=f'kos{id}', sig=sig, id=id)
+                              query_str=f'{APIRoute.GET_FORBIDDEN_ZONES_DELTA}?id={id}', key_group=f'{KeyGroup.KOS}{id}', sig=sig, id=id)
     else:
         return bad_request('Wrong id')
       
       
-@bp.route('/api/forbidden_zones_hash')
+@bp.route(APIRoute.FORBIDDEN_ZONES_HASH)
 def forbidden_zones_hash():
     """
     Возвращает SHA-256 хэш строки запрещенных для полета зон.
@@ -1528,12 +1493,12 @@ def forbidden_zones_hash():
     sig = request.args.get('sig')
     if id:
         return signed_request(handler_func=get_forbidden_zones_hash_handler, verifier_func=verify, signer_func=sign,
-                              query_str=f'/api/forbidden_zones_hash?id={id}', key_group=f'kos{id}', sig=sig, id=id)
+                              query_str=f'{APIRoute.FORBIDDEN_ZONES_HASH}?id={id}', key_group=f'{KeyGroup.KOS}{id}', sig=sig, id=id)
     else:
         return bad_request('Wrong id')
       
       
-@bp.route('/admin/export_forbidden_zones')
+@bp.route(AdminRoute.EXPORT_FORBIDDEN_ZONES)
 def export_forbidden_zones():
     """
     Экспортирует все запрещенные зоны в файл.
@@ -1563,7 +1528,7 @@ def export_forbidden_zones():
     return send_file(FORBIDDEN_ZONES_PATH, as_attachment=True, attachment_filename='forbidden_zones.json')
 
 
-@bp.route('/admin/import_forbidden_zones', methods=['POST'])
+@bp.route(AdminRoute.IMPORT_FORBIDDEN_ZONES, methods=['POST'])
 def import_forbidden_zones():
     """
     Импортирует запрещенные зоны из файла.
@@ -1607,6 +1572,7 @@ def import_forbidden_zones():
             new_zones = json.load(f)
         
         compute_and_save_forbidden_zones_delta(old_zones, new_zones)
+        mqtt_publish_forbidden_zones()
         
         return jsonify({"status": "success"}), 200
     except Exception as e:
@@ -1614,7 +1580,7 @@ def import_forbidden_zones():
         return jsonify({"error": "Failed to save file"}), 400
       
 
-@bp.route('/admin/get_delay')
+@bp.route(AdminRoute.GET_DELAY)
 def get_delay():
     """
     Получает время до следующего сеанса связи для указанного БПЛА.
@@ -1652,7 +1618,7 @@ def get_delay():
         return bad_request('Wrong id')
 
 
-@bp.route('/admin/set_delay')
+@bp.route(AdminRoute.SET_DELAY)
 def set_delay():
     """
     Устанавливает время до следующего сеанса связи для указанного БПЛА.
@@ -1696,7 +1662,7 @@ def set_delay():
         return bad_request('Wrong id/delay')
       
       
-@bp.route('/admin/revise_mission_decision')
+@bp.route(AdminRoute.REVISE_MISSION_DECISION)
 def revise_mission_decision():
     id = cast_wrapper(request.args.get('id'), str)
     decision = cast_wrapper(request.args.get('decision'), int)
@@ -1707,29 +1673,29 @@ def revise_mission_decision():
         return bad_request('Wrong id/decision')
       
       
-@bp.route('/admin/get_display_mode')
+@bp.route(AdminRoute.GET_DISPLAY_MODE)
 def get_display_mode():
     token = request.args.get('token')
     return authorized_request(handler_func=get_display_mode_handler, token=token)
       
 
-@bp.route('/admin/toggle_display_mode')
+@bp.route(AdminRoute.TOGGLE_DISPLAY_MODE)
 def toggle_display_mode():
     token = request.args.get('token')
     return authorized_request(handler_func=toggle_display_mode_handler, token=token)
   
-@bp.route('/admin/get_flight_info_response_mode')
+@bp.route(AdminRoute.GET_FLIGHT_INFO_RESPONSE_MODE)
 def get_flight_info_response_mode():
     token = request.args.get('token')
     return authorized_request(handler_func=get_flight_info_response_mode_handler, token=token)
       
 
-@bp.route('/admin/toggle_flight_info_response_mode')
+@bp.route(AdminRoute.TOGGLE_FLIGHT_INFO_RESPONSE_MODE)
 def toggle_flight_info_response_mode():
     token = request.args.get('token')
     return authorized_request(handler_func=toggle_flight_info_response_mode_handler, token=token)
   
-@bp.route('/admin/get_all_data')
+@bp.route(AdminRoute.GET_ALL_DATA)
 def get_all_data():
     token = request.args.get('token')
     return authorized_request(handler_func=get_all_data_handler, token=token)

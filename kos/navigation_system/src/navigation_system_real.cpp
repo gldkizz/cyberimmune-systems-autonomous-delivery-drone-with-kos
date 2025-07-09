@@ -27,19 +27,21 @@
 
 /** \cond */
 #define NAME_MAX_LENGTH 64
-#define LNS_ANGLE 69
-#define LNS_LAT 598858446
-#define LNS_LNG 298209447
+#define LNS_ANGLE 60
+#define LNS_LAT 600025472
+#define LNS_LNG 278573184
 
 #if ALT_SRC == 1
     std::thread barometerThread;
 #endif
 
 #if COORD_SRC == 1
-    char gpsUart[] = "uart3";
+    char bspUart[] = "uart3";
+    char gpsUart[] = "serial@7e201600";
 #elif COORD_SRC == 2
 #define LATLON_TO_M 0.011131884502145034
-    char gpsUart[] = "uart5";
+    char bspUart[] = "uart5";
+    char gpsUart[] = "serial@7e201a00";
     float lnsSin, lnsCos, lnsScale;
     int32_t prevX, prevY;
 #endif
@@ -497,19 +499,19 @@ int initNavigationSystem() {
 
     char logBuffer[256] = {0};
     Retcode rc = BspInit(NULL);
-    if (rc != rcOk) {
+    if (rc != BSP_EOK) {
         snprintf(logBuffer, 256, "Failed to initialize BSP (" RETCODE_HR_FMT ")", RETCODE_HR_PARAMS(rc));
         logEntry(logBuffer, ENTITY_NAME, LogLevel::LOG_ERROR);
-        return 0;
+        return EXIT_FAILURE;
     }
-    rc = BspEnableModule(gpsUart);
-    if (rc != rcOk) {
+    rc = BspEnableModule(bspUart);
+    if (rc != BSP_EOK) {
         snprintf(logBuffer, 256, "Failed to enable UART %s (" RETCODE_HR_FMT ")", RETCODE_HR_PARAMS(rc));
         logEntry(logBuffer, ENTITY_NAME, LogLevel::LOG_ERROR);
-        return 0;
+        return EXIT_FAILURE;
     }
-    rc = BspSetConfig(gpsUart, gpsConfig);
-    if (rc != rcOk) {
+    rc = BspSetConfig(bspUart, gpsConfig);
+    if (rc != BSP_EOK) {
         snprintf(logBuffer, 256, "Failed to set BSP config for UART %s (" RETCODE_HR_FMT ")", gpsUart, RETCODE_HR_PARAMS(rc));
         logEntry(logBuffer, ENTITY_NAME, LogLevel::LOG_ERROR);
         return 0;

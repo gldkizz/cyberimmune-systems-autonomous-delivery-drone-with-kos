@@ -90,7 +90,12 @@ enum AutopilotCommand : uint8_t {
      * \~English A requirement to set passed mission.
      * \~Russian Требование изменения миссии на переданную.
      */
-    SetMission = 0x42
+    SetMission = 0x42,
+    /**
+     * \~English An event message.
+     * \~Russian Сообщение о событии.
+     */
+    AutopilotEvent = 0xEB
 };
 
 /**
@@ -152,6 +157,27 @@ int initAutopilotConnector();
 int initConnection();
 
 /**
+ * \~English Checks whether arm was requested from the autopilot.AbortMission
+ * \return Returns 1 if arm was requested, 0 otherwise.
+ * \~Russian Проверяет, запрашивал ли автопилот разрешение на арм
+ * \return Возвращает 1, если запрос был, 0 -- иначе.
+ */
+int isArmRequested();
+
+/**
+ * \~English Waits for a specified number of bytes the autopilot.
+ * \warning Synchronous method. Ends only when bytes are received from the autopilot.
+ * \param[in] byteNum Number of expected bytes.
+ * \param[out] bytes Received bytes.
+ * \return Returns 1 on successful bytes receive, 0 otherwise.
+ * \~Russian Ожидает получения указанного числа байтов от автопилота.
+ * \warning Синхронный метод. Завершится, лишь когда байты от автопилота будут получены.
+ * \param[in] byteNum Ожидаемое число байтов.
+ * \param[out] bytes Полученные байты.
+ * \return Возвращает 1 при успешном получении байтов, 0 -- иначе.
+ */
+int getAutopilotBytes(uint32_t byteNum, uint8_t* bytes);
+/**
  * \~English Waits for a message from the autopilot.
  * \warning Synchronous method. Ends only when a message is received from the autopilot.
  * \param[out] command Received message type.
@@ -162,6 +188,7 @@ int initConnection();
  * \return Возвращает 1 при успешном получении сообщения, 0 -- иначе.
  */
 int getAutopilotCommand(uint8_t& command);
+
 /**
  * \~English Sends raw bytes to the autopilot.
  * \param[in] bytes Pointer to byte array.
@@ -173,7 +200,6 @@ int getAutopilotCommand(uint8_t& command);
  * \return Возвращает 1 при успешном получении сообщения, 0 -- иначе.
  */
 int sendAutopilotBytes(uint8_t* bytes, ssize_t size);
-
 /**
  * \~English Sends a message to the autopilot. A version without additional data sent.
  * \param[in] command Sent message type.
@@ -232,3 +258,11 @@ int sendAutopilotCommand(AutopilotCommand command, int32_t valueFirst, int32_t v
  * \note Предполагается для отправки команды SetMission и новой миссии, закодированной в байтах.
  */
 int sendAutopilotCommand(AutopilotCommand command, uint8_t* rawBytes, int32_t byteSize);
+
+/**
+ * \~English Procedure that waits messages from the autopilot. Transmits events to the ATM server.
+ * It is assumed that this procedure is looped and is performed in a parallel thread.
+ * \~Russian Процедура, ожидающая команды от автопилота. Полученные события пересылает на сервер ОРВД.
+ * Предполагается, что эта процедура выполняется циклически в параллельной нити.
+ */
+void listenAutopilot();

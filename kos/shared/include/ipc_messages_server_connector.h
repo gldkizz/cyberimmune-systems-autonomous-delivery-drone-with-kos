@@ -45,4 +45,17 @@ int sendRequest(char* query, char* response, uint32_t responseSize);
  * \param[in] publication Сообщение, которое будет опубликовано.
  * \return Возвращает 1, если сообщениями было успешно опубликовано, иначе -- 0.
  */
-int publishMessage(char* topic, char* publication);
+int publishMessage(char* topic, const char* publication);
+/**
+ * \~English Gets stored message, received MQTT-protocol.
+ * \param[in] topic Name of topic to receive message from.
+ * \param[out] subscription Oldest available message. Empty line if no new message was received.
+ * \param[in] subscriptionSize Size of output message buffer.
+ * \return Returns 1 on successful message receive, 0 otherwise.
+ * \~Russian Получает сохраненное сообщение, полученное по MQTT-протоколу.
+ * \param[in] topic Тема, по которой будет получено сообщение.
+ * \param[out] subscription Самое старое из полученных сообщений. Пустая строка, если сообщений нет.
+ * \param[in] subscriptionSize Размер буфера, куда записывается сообщение.
+ * \return Возвращает 1, если сообщение было успешно получено, иначе -- 0.
+ */
+int receiveSubscription(char* topic, char* subscription, uint32_t subscriptionSize);

@@ -55,6 +55,7 @@ char* getBoardName();
  * \return Возвращает 1, если обмен сообщениями с сервером был успешен или истекло время ожидания подключения к серверу, иначе -- 0.
  */
 int requestServer(char* query, char* response, uint32_t responseSize);
+
 /**
  * \~English Publish the message via MQTT-protocol.
  * \param[in] topic Name of topic to publish message to.
@@ -63,6 +64,20 @@ int requestServer(char* query, char* response, uint32_t responseSize);
  * \~Russian Публикует сообщение по MQTT-протоколу.
  * \param[in] topic Тема, в которую будет опубликовано сообщение.
  * \param[in] publication Сообщение, которое будет опубликовано.
- * \return Возвращает 1, если сообщениями было успешно опубликовано, иначе -- 0.
+ * \return Возвращает 1, если сообщенияе было успешно опубликовано, иначе -- 0.
  */
 int publish(char* topic, char* publication);
+
+/**
+ * \~English Get message by topic received via MQTT-protocol.
+ * \param[in] topic Name of topic to receive message from.
+ * \param[out] message Oldest available message. Empty line if no new message was received.
+ * \param[in] messageSize Size of output message buffer.
+ * \return Returns 1 on successful message receive, 0 otherwise.
+ * \~Russian Получает сообщение по теме по MQTT-протоколу.
+ * \param[in] topic Тема, по которой будет получено сообщение.
+ * \param[out] message Самое старое из полученных сообщений. Пустая строка, если сообщений нет.
+ * \param[in] messageSize Размер буфера, куда записывается сообщение.
+ * \return Возвращает 1, если сообщение было успешно получено, иначе -- 0.
+ */
+int getSubscription(char* topic, char* message, uint32_t messageSize);
