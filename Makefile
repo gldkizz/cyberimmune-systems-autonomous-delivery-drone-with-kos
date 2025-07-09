@@ -124,6 +124,11 @@ start-orvd: ## Запуск ОрВД в docker контейнере
 	[ -n "$$mqttserver" ] || read -p "Please enter MQTT server IP: " mqttserver; \
 	docker run --name orvd -ti -e MQTT_HOST=$$mqttserver -w /home/user/orvd -p 8080:8080 --rm orvd
 
+start-mavproxy-client: ## Запуск MAVProxy как ground control с графикой
+	xhost +local:
+	docker run --name mavproxy-client -w /home/user/mavproxy --user user --net host -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$$DISPLAY -it --rm simulator /bin/bash -c "mavproxy.py --master udp:0.0.0.0:14550 --logfile /home/user/mav.tlog --console --map --load-module=horizon" || true
+	xhost -local:
+
 e2e-offline: docker-image ## Запуск сквозных тестов в режиме offline
 	docker-compose -f tests/e2e-offline-docker-compose.yml up --abort-on-container-exit --exit-code-from mavproxy
 	docker-compose -f tests/e2e-offline-docker-compose.yml down
