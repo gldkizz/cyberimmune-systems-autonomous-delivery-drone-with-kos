@@ -58,7 +58,7 @@ int sendRequest(char* query, char* response, uint32_t responseSize) {
     return 1;
 }
 
-int publishMessage(char* topic, char* publication) {
+int publishMessage(char* topic, const char* publication) {
     return 1;
 }
 
