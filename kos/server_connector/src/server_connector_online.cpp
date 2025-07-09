@@ -117,8 +117,8 @@ int initServerConnector() {
     subscriber->subscribe(NULL, topic);
     subscriberThread = std::thread([&](){ subscriber->loop_forever(); });
 
-    return 1;
-}
+        return 1;
+    }
 
 int requestServer(char* query, char* response, uint32_t responseSize) {
     char request[BUFFER_SIZE] = {0};

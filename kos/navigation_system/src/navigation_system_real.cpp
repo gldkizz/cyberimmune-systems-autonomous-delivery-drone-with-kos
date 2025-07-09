@@ -39,7 +39,7 @@
     char bspUart[] = "uart3";
     char gpsUart[] = "serial@7e201600";
 #elif COORD_SRC == 2
-    #define LATLON_TO_M 0.011131884502145034
+#define LATLON_TO_M 0.011131884502145034
     char bspUart[] = "uart5";
     char gpsUart[] = "serial@7e201a00";
     float lnsSin, lnsCos, lnsScale;
