@@ -22,6 +22,7 @@ RUN apt-get update && \
         python3-matplotlib \
         python3-lxml \
         python3-pygame \
+        python3-future \
         sudo \
         mc \
         vim \
