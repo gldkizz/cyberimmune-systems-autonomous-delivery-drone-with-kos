@@ -339,6 +339,28 @@ int main(void) {
     //If we get here, the drone is able to arm and start the mission
     //The flight is need to be controlled from now on
 
+    logEntry("Starting coordinate monitoring", ENTITY_NAME, LogLevel::LOG_INFO);
+    while (true) {
+        int32_t latitude, longitude, altitude;
+
+        if (getCoords(latitude, longitude, altitude)) {
+            char coordBuffer[256];
+            snprintf(coordBuffer, sizeof(coordBuffer), 
+                    "Current coordinates: lat=%.7f, lon=%.7f, alt=%.2fm",
+                    latitude / 1e7, 
+                    longitude / 1e7,
+                    altitude / 100.0);
+            
+            printf("%s\n", coordBuffer);
+            
+            logEntry(coordBuffer, ENTITY_NAME, LogLevel::LOG_INFO);
+        } else {
+            logEntry("Failed to get coordinates", ENTITY_NAME, LogLevel::LOG_WARNING);
+        }
+
+        sleep(2);
+    }
+
     while (true)
         sleep(1000);
 
